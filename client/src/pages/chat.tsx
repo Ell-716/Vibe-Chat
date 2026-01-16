@@ -98,7 +98,8 @@ export default function ChatPage() {
   }, [activeConversation?.messages, streamingMessage, scrollToBottom]);
 
   const handleNewChat = () => {
-    createConversationMutation.mutate("New Chat");
+    setActiveConversationId(null);
+    setSidebarOpen(false);
   };
 
   const handleSelectConversation = (id: number) => {
