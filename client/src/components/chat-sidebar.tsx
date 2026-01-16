@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check } from "lucide-react";
+import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -100,29 +100,38 @@ export function ChatSidebar({
       <aside
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 w-[260px] 
-          flex flex-col bg-[#1a1a1a] border-r border-[#333333]
+          flex flex-col bg-[#252525]
           transform transition-transform duration-200 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
         data-testid="sidebar"
       >
-        <div className="flex h-14 items-center justify-between px-4 border-b border-[#333333]">
-          <Button
-            onClick={onNewChat}
-            className="flex-1 mr-2 bg-[#00c9a7] hover:bg-[#00b398] text-white font-medium"
-            data-testid="button-new-chat"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Chat
-          </Button>
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#00c9a7] to-[#00a896]">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-semibold text-white">Vibe Chat</span>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-white"
+            className="lg:hidden text-white hover:bg-[#333333]"
             onClick={onClose}
             data-testid="button-close-sidebar"
           >
             <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="px-4 pb-4">
+          <Button
+            onClick={onNewChat}
+            className="w-full bg-[#00c9a7] hover:bg-[#00b398] text-white font-medium"
+            data-testid="button-new-chat"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Chat
           </Button>
         </div>
 
@@ -170,7 +179,7 @@ export function ChatSidebar({
                                 if (e.key === "Enter") handleSaveRename();
                                 if (e.key === "Escape") handleCancelRename();
                               }}
-                              className="h-7 text-sm bg-[#1a1a1a] border-[#00c9a7] text-white"
+                              className="h-7 text-sm bg-[#1f1f1f] border-[#00c9a7] text-white"
                               autoFocus
                               onClick={(e) => e.stopPropagation()}
                               data-testid={`input-rename-${conversation.id}`}

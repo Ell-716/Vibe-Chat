@@ -227,20 +227,17 @@ export default function ChatPage() {
       />
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-14 items-center gap-4 border-b border-[#333333] px-4 lg:px-6">
+        <div className="lg:hidden flex h-12 items-center px-4">
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-white"
+            className="text-white hover:bg-[#333333]"
             onClick={() => setSidebarOpen(true)}
             data-testid="button-sidebar-toggle"
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-medium text-white truncate">
-            {activeConversation?.title || "AI Assistant"}
-          </h1>
-        </header>
+        </div>
 
         <main className="flex-1 overflow-hidden flex flex-col">
           {isLoadingConversation ? (

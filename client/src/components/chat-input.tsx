@@ -43,16 +43,16 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   };
 
   return (
-    <div className="border-t border-[#333333] p-4">
+    <div className="p-4">
       <div className="mx-auto max-w-3xl">
-        <div className="relative flex items-end gap-2 rounded-xl bg-[#2d2d2d] p-2">
+        <div className="relative flex items-center gap-3 rounded-2xl bg-[#2d2d2d] px-4 py-3">
           <Textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message AI..."
-            className="min-h-[44px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-[15px] text-white placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[24px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-[15px] text-white placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0 py-0"
             disabled={isStreaming}
             data-testid="input-message"
           />
@@ -60,7 +60,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             onClick={handleSend}
             disabled={!message.trim() || isStreaming}
             className={`
-              h-10 w-10 rounded-full shrink-0
+              h-9 w-9 rounded-full shrink-0
               ${message.trim() && !isStreaming 
                 ? "bg-[#00c9a7] hover:bg-[#00b398] text-white" 
                 : "bg-[#444444] text-[#999999] cursor-not-allowed"
