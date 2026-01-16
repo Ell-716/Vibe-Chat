@@ -9,19 +9,60 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+const ZAPIER_MCP_URL = process.env.ZAPIER_MCP_URL;
+const ZAPIER_MCP_API_KEY = process.env.ZAPIER_MCP_API_KEY;
+
+async function callZapierMCP(action: string, params: Record<string, any> = {}): Promise<any> {
+  if (!ZAPIER_MCP_URL || !ZAPIER_MCP_API_KEY) {
+    throw new Error("Zapier MCP credentials not configured");
+  }
+
+  const response = await fetch(ZAPIER_MCP_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${ZAPIER_MCP_API_KEY}`,
+    },
+    body: JSON.stringify({
+      action,
+      params,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Zapier MCP error: ${error}`);
+  }
+
+  return response.json();
+}
+
+async function listMCPTools(): Promise<any[]> {
+  try {
+    if (!ZAPIER_MCP_URL) {
+      return [];
+    }
+    const result = await callZapierMCP("list-tools");
+    return result.tools || [];
+  } catch (error) {
+    console.error("Error listing MCP tools:", error);
+    return [];
+  }
+}
+
 function buildMCPContext(mcpTools?: MCPTool[]): string {
   if (!mcpTools || mcpTools.length === 0) return "";
   
   const toolDescriptions = mcpTools.map(tool => {
     if (tool.type === 'drive') {
-      return `[Google Drive: User wants to work with files from their Google Drive. You can help them browse, read, or manage files.]`;
+      return `[Google Drive Integration Active: You have access to Google Drive via Zapier MCP. You can help the user browse files, read file contents, upload files, and manage their Drive. When the user asks to work with Drive files, describe what actions you can take and ask for specifics like file names or folder locations.]`;
     } else if (tool.type === 'sheets') {
-      return `[Google Sheets: User wants to work with Google Sheets spreadsheets. You can help them read data, add rows, or modify spreadsheets.]`;
+      return `[Google Sheets Integration Active: You have access to Google Sheets via Zapier MCP. You can help the user read spreadsheet data, add new rows, update cells, and search for information. When the user asks to work with Sheets, ask for the spreadsheet name and what data they want to read or write.]`;
     }
     return '';
   }).filter(Boolean).join('\n');
   
-  return `\n\nMCP TOOLS CONTEXT:\n${toolDescriptions}\nNote: MCP integration via zapier.com/mcp allows you to interact with these services. When the user asks about Google Drive or Sheets operations, help them understand what actions are possible.`;
+  return `\n\nACTIVE MCP INTEGRATIONS:\n${toolDescriptions}\n\nYou are connected to Zapier MCP (zapier.com/mcp) which allows real actions on these services. Guide the user through what's possible and ask clarifying questions to help them accomplish their goal.`;
 }
 
 export async function registerRoutes(
@@ -93,6 +134,30 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/mcp/tools", async (req, res) => {
+    try {
+      const tools = await listMCPTools();
+      res.json({ tools, configured: !!ZAPIER_MCP_URL });
+    } catch (error) {
+      console.error("Error fetching MCP tools:", error);
+      res.json({ tools: [], configured: false });
+    }
+  });
+
+  app.post("/api/mcp/execute", async (req, res) => {
+    try {
+      const { action, params } = req.body;
+      if (!action) {
+        return res.status(400).json({ error: "Action is required" });
+      }
+      const result = await callZapierMCP(action, params);
+      res.json(result);
+    } catch (error) {
+      console.error("Error executing MCP action:", error);
+      res.status(500).json({ error: "Failed to execute MCP action" });
+    }
+  });
+
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
@@ -111,7 +176,7 @@ export async function registerRoutes(
       }));
 
       const mcpContext = buildMCPContext(mcpTools as MCPTool[] | undefined);
-      const systemPrompt = `You are a helpful AI assistant. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.${mcpContext}`;
+      const systemPrompt = `You are a helpful AI assistant called Vibe Chat. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.${mcpContext}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
