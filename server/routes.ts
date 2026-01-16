@@ -45,7 +45,47 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
     throw new Error(`MCP error: ${response.status} ${error}`);
   }
 
-  const result = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let result: any;
+
+  if (contentType.includes("text/event-stream")) {
+    const text = await response.text();
+    console.log("MCP SSE Response:", text);
+    
+    const lines = text.split('\n');
+    let jsonData = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        jsonData += line.slice(6);
+      }
+    }
+    
+    if (jsonData) {
+      try {
+        result = JSON.parse(jsonData);
+      } catch (e) {
+        console.log("Failed to parse SSE data as JSON, trying line by line");
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              result = JSON.parse(line.slice(6));
+              break;
+            } catch (e2) {
+              continue;
+            }
+          }
+        }
+      }
+    }
+    
+    if (!result) {
+      throw new Error(`Failed to parse MCP SSE response: ${text.substring(0, 200)}`);
+    }
+  } else {
+    result = await response.json();
+  }
+  
   console.log("MCP Response:", JSON.stringify(result, null, 2));
   
   if (result.error) {
