@@ -164,7 +164,7 @@ export function ChatSidebar({
                       <div
                         key={conversation.id}
                         className={`
-                          group relative flex items-center gap-2 rounded-lg px-3 py-2 pr-10 cursor-pointer
+                          group grid grid-cols-[16px_1fr_24px] items-center gap-2 rounded-lg px-3 py-2 cursor-pointer
                           transition-colors duration-150
                           ${
                             activeConversationId === conversation.id
@@ -175,7 +175,7 @@ export function ChatSidebar({
                         onClick={() => editingId !== conversation.id && onSelectConversation(conversation.id)}
                         data-testid={`conversation-item-${conversation.id}`}
                       >
-                        <MessageSquare className="h-4 w-4 text-[#999999] shrink-0" />
+                        <MessageSquare className="h-4 w-4 text-[#999999]" />
                         {editingId === conversation.id ? (
                           <div className="flex-1 flex items-center gap-1">
                             <Input
@@ -217,20 +217,19 @@ export function ChatSidebar({
                           </div>
                         ) : (
                           <>
-                            <span className="truncate text-sm text-white flex-1">
+                            <span className="truncate text-sm text-white">
                               {conversation.title}
                             </span>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-[#666666] hover:text-white hover:bg-[#3d3d3d]"
+                                <button
+                                  type="button"
+                                  className="flex items-center justify-center h-6 w-6 rounded text-[#666666] hover:text-white hover:bg-[#3d3d3d]"
                                   onClick={(e) => e.stopPropagation()}
                                   data-testid={`button-options-${conversation.id}`}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                                </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-[#2d2d2d] border-[#333333]">
                                 <DropdownMenuItem
