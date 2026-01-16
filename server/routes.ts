@@ -242,23 +242,41 @@ async function handleToolCall(functionName: string, args: Record<string, any>): 
     switch (functionName) {
       case "google_drive_find_file":
         mcpToolName = "google_drive_find_a_file";
-        mcpArgs = { Search_Query: args.query };
+        mcpArgs = { 
+          instructions: `Search for files matching: ${args.query || 'all files'}`,
+          Search_Query: args.query || ""
+        };
         break;
       case "google_drive_get_file":
         mcpToolName = "google_drive_retrieve_file_or_folder_by_id";
-        mcpArgs = { File_ID: args.file_id };
+        mcpArgs = { 
+          instructions: `Retrieve file with ID: ${args.file_id}`,
+          File_ID: args.file_id 
+        };
         break;
       case "google_sheets_get_spreadsheet":
         mcpToolName = "google_sheets_get_spreadsheet_by_id";
-        mcpArgs = { Spreadsheet: args.spreadsheet_id };
+        mcpArgs = { 
+          instructions: `Get spreadsheet with ID: ${args.spreadsheet_id}`,
+          Spreadsheet: args.spreadsheet_id 
+        };
         break;
       case "google_sheets_create_row":
         mcpToolName = "google_sheets_create_spreadsheet_row";
-        mcpArgs = { Spreadsheet: args.spreadsheet_id, ...args.values };
+        mcpArgs = { 
+          instructions: `Add a new row to spreadsheet ${args.spreadsheet_id}`,
+          Spreadsheet: args.spreadsheet_id, 
+          ...args.values 
+        };
         break;
       case "google_sheets_update_row":
         mcpToolName = "google_sheets_update_spreadsheet_row_s_";
-        mcpArgs = { Spreadsheet: args.spreadsheet_id, Row: args.row_number, ...args.values };
+        mcpArgs = { 
+          instructions: `Update row ${args.row_number} in spreadsheet ${args.spreadsheet_id}`,
+          Spreadsheet: args.spreadsheet_id, 
+          Row: args.row_number, 
+          ...args.values 
+        };
         break;
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
