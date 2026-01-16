@@ -33,6 +33,7 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json, text/event-stream",
       "Authorization": `Bearer ${ZAPIER_MCP_API_KEY}`,
     },
     body: JSON.stringify(requestBody),
