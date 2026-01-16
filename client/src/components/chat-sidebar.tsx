@@ -108,7 +108,7 @@ export function ChatSidebar({
         `}
         data-testid="sidebar"
       >
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between px-4 pt-4 pb-8">
           <button
             onClick={onGoHome}
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
