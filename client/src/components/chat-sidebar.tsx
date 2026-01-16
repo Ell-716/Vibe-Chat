@@ -164,7 +164,7 @@ export function ChatSidebar({
                       <div
                         key={conversation.id}
                         className={`
-                          group flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer
+                          group relative flex items-center gap-2 rounded-lg px-3 py-2 pr-10 cursor-pointer
                           transition-colors duration-150
                           ${
                             activeConversationId === conversation.id
@@ -217,7 +217,7 @@ export function ChatSidebar({
                           </div>
                         ) : (
                           <>
-                            <span className="truncate text-sm text-white" style={{ flex: '1 1 0', minWidth: 0 }}>
+                            <span className="truncate text-sm text-white flex-1">
                               {conversation.title}
                             </span>
                             <DropdownMenu>
@@ -225,8 +225,7 @@ export function ChatSidebar({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 text-[#666666] hover:text-white hover:bg-[#3d3d3d]"
-                                  style={{ flexShrink: 0 }}
+                                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-[#666666] hover:text-white hover:bg-[#3d3d3d]"
                                   onClick={(e) => e.stopPropagation()}
                                   data-testid={`button-options-${conversation.id}`}
                                 >
