@@ -216,8 +216,8 @@ export function ChatSidebar({
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex-1 min-w-0 flex items-center gap-2">
-                            <span className="flex-1 truncate text-sm text-white min-w-0">
+                          <>
+                            <span className="truncate text-sm text-white" style={{ flex: '1 1 0', minWidth: 0 }}>
                               {conversation.title}
                             </span>
                             <DropdownMenu>
@@ -225,7 +225,8 @@ export function ChatSidebar({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-[#666666] hover:text-white hover:bg-[#3d3d3d] shrink-0 flex-shrink-0"
+                                  className="h-6 w-6 text-[#666666] hover:text-white hover:bg-[#3d3d3d]"
+                                  style={{ flexShrink: 0 }}
                                   onClick={(e) => e.stopPropagation()}
                                   data-testid={`button-options-${conversation.id}`}
                                 >
@@ -257,7 +258,7 @@ export function ChatSidebar({
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </div>
+                          </>
                         )}
                       </div>
                     ))}
