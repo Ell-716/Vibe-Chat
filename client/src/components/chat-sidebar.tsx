@@ -1,8 +1,16 @@
+import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Plus, MessageSquare, Trash2, X } from "lucide-react";
+import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Conversation } from "@shared/schema";
 
 interface ChatSidebarProps {
@@ -11,6 +19,7 @@ interface ChatSidebarProps {
   onNewChat: () => void;
   onSelectConversation: (id: number) => void;
   onDeleteConversation: (id: number) => void;
+  onRenameConversation: (id: number, title: string) => void;
   isLoading: boolean;
   isOpen: boolean;
   onClose: () => void;
@@ -22,10 +31,31 @@ export function ChatSidebar({
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
+  onRenameConversation,
   isLoading,
   isOpen,
   onClose,
 }: ChatSidebarProps) {
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+
+  const handleStartRename = (conversation: Conversation) => {
+    setEditingId(conversation.id);
+    setEditingTitle(conversation.title);
+  };
+
+  const handleSaveRename = () => {
+    if (editingId && editingTitle.trim()) {
+      onRenameConversation(editingId, editingTitle.trim());
+    }
+    setEditingId(null);
+    setEditingTitle("");
+  };
+
+  const handleCancelRename = () => {
+    setEditingId(null);
+    setEditingTitle("");
+  };
   const groupConversationsByDate = (conversations: Conversation[]) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -127,25 +157,93 @@ export function ChatSidebar({
                               : "hover:bg-[#2d2d2d]/50"
                           }
                         `}
-                        onClick={() => onSelectConversation(conversation.id)}
+                        onClick={() => editingId !== conversation.id && onSelectConversation(conversation.id)}
                         data-testid={`conversation-item-${conversation.id}`}
                       >
                         <MessageSquare className="h-4 w-4 text-[#999999] shrink-0" />
-                        <span className="flex-1 truncate text-sm text-white">
-                          {conversation.title}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-[#999999] hover:text-red-400 hover:bg-transparent shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteConversation(conversation.id);
-                          }}
-                          data-testid={`button-delete-conversation-${conversation.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {editingId === conversation.id ? (
+                          <div className="flex-1 flex items-center gap-1">
+                            <Input
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveRename();
+                                if (e.key === "Escape") handleCancelRename();
+                              }}
+                              className="h-7 text-sm bg-[#1a1a1a] border-[#00c9a7] text-white"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                              data-testid={`input-rename-${conversation.id}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-[#00c9a7] hover:text-[#00c9a7] hover:bg-transparent shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveRename();
+                              }}
+                              data-testid={`button-save-rename-${conversation.id}`}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-[#999999] hover:text-white hover:bg-transparent shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelRename();
+                              }}
+                              data-testid={`button-cancel-rename-${conversation.id}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="flex-1 truncate text-sm text-white">
+                              {conversation.title}
+                            </span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 text-[#999999] hover:text-white hover:bg-transparent shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                  data-testid={`button-options-${conversation.id}`}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-[#2d2d2d] border-[#333333]">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartRename(conversation);
+                                  }}
+                                  className="text-white hover:bg-[#3d3d3d] cursor-pointer"
+                                  data-testid={`button-rename-${conversation.id}`}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteConversation(conversation.id);
+                                  }}
+                                  className="text-red-400 hover:bg-[#3d3d3d] hover:text-red-400 cursor-pointer"
+                                  data-testid={`button-delete-${conversation.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>

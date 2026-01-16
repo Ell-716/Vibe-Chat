@@ -69,6 +69,26 @@ export default function ChatPage() {
     },
   });
 
+  const renameConversationMutation = useMutation({
+    mutationFn: async ({ id, title }: { id: number; title: string }) => {
+      const res = await apiRequest("PATCH", `/api/conversations/${id}`, { title });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      if (activeConversationId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations", activeConversationId] });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to rename conversation. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
@@ -88,6 +108,10 @@ export default function ChatPage() {
 
   const handleDeleteConversation = (id: number) => {
     deleteConversationMutation.mutate(id);
+  };
+
+  const handleRenameConversation = (id: number, title: string) => {
+    renameConversationMutation.mutate({ id, title });
   };
 
   const handleSendMessage = async (content: string) => {
@@ -196,6 +220,7 @@ export default function ChatPage() {
         onNewChat={handleNewChat}
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
+        onRenameConversation={handleRenameConversation}
         isLoading={conversationsLoading}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
