@@ -124,6 +124,17 @@ export default function ChatPage() {
       await queryClient.invalidateQueries({ queryKey: ["/api/conversations", newConversation.id] });
       await streamMessage(newConversation.id, content);
     } else {
+      const currentConversation = activeConversation;
+      const isFirstMessage = currentConversation?.messages?.length === 0;
+      const isDefaultTitle = currentConversation?.title === "New Chat";
+      
+      if (isFirstMessage && isDefaultTitle) {
+        renameConversationMutation.mutate({ 
+          id: activeConversationId, 
+          title: content.slice(0, 50) 
+        });
+      }
+      
       await streamMessage(activeConversationId, content);
     }
   };

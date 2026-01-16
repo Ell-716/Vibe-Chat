@@ -219,7 +219,7 @@ export function ChatSidebar({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 text-[#999999] hover:text-white hover:bg-transparent shrink-0"
+                                  className="h-7 w-7 text-[#666666] hover:text-white hover:bg-[#3d3d3d] shrink-0"
                                   onClick={(e) => e.stopPropagation()}
                                   data-testid={`button-options-${conversation.id}`}
                                 >
