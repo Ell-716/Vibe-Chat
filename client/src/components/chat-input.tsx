@@ -52,8 +52,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Start vibing..."
-            className="min-h-[32px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-base text-white placeholder:text-base placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0"
-            style={{ paddingTop: '4px', paddingBottom: '4px' }}
+            className="h-[24px] min-h-[24px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-base text-white placeholder:text-base placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0 leading-[24px] p-0"
             disabled={isStreaming}
             data-testid="input-message"
           />
