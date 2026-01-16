@@ -2,11 +2,27 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
+import type { MCPTool } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+function buildMCPContext(mcpTools?: MCPTool[]): string {
+  if (!mcpTools || mcpTools.length === 0) return "";
+  
+  const toolDescriptions = mcpTools.map(tool => {
+    if (tool.type === 'drive') {
+      return `[Google Drive: User wants to work with files from their Google Drive. You can help them browse, read, or manage files.]`;
+    } else if (tool.type === 'sheets') {
+      return `[Google Sheets: User wants to work with Google Sheets spreadsheets. You can help them read data, add rows, or modify spreadsheets.]`;
+    }
+    return '';
+  }).filter(Boolean).join('\n');
+  
+  return `\n\nMCP TOOLS CONTEXT:\n${toolDescriptions}\nNote: MCP integration via zapier.com/mcp allows you to interact with these services. When the user asks about Google Drive or Sheets operations, help them understand what actions are possible.`;
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -80,7 +96,7 @@ export async function registerRoutes(
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
-      const { content } = req.body;
+      const { content, mcpTools } = req.body;
 
       if (!content || typeof content !== "string") {
         return res.status(400).json({ error: "Content is required" });
@@ -94,6 +110,9 @@ export async function registerRoutes(
         content: m.content,
       }));
 
+      const mcpContext = buildMCPContext(mcpTools as MCPTool[] | undefined);
+      const systemPrompt = `You are a helpful AI assistant. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.${mcpContext}`;
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -103,7 +122,7 @@ export async function registerRoutes(
         messages: [
           {
             role: "system",
-            content: "You are a helpful AI assistant. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.",
+            content: systemPrompt,
           },
           ...chatMessages,
         ],

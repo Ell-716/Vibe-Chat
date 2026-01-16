@@ -45,3 +45,11 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export interface MCPTool {
+  id: string;
+  name: string;
+  type: 'drive' | 'sheets';
+  fileName?: string;
+  fileId?: string;
+}

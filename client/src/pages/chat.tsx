@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Menu } from "lucide-react";
-import type { Conversation, Message } from "@shared/schema";
+import type { Conversation, Message, MCPTool } from "@shared/schema";
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
@@ -120,7 +120,7 @@ export default function ChatPage() {
     setSidebarOpen(false);
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, mcpTools?: MCPTool[]) => {
     if (!activeConversationId) {
       const res = await apiRequest("POST", "/api/conversations", { title: content.slice(0, 50) });
       const newConversation = await res.json();
@@ -128,7 +128,7 @@ export default function ChatPage() {
       setActiveConversationId(newConversation.id);
       
       await queryClient.invalidateQueries({ queryKey: ["/api/conversations", newConversation.id] });
-      await streamMessage(newConversation.id, content);
+      await streamMessage(newConversation.id, content, mcpTools);
     } else {
       const currentConversation = activeConversation;
       const isFirstMessage = currentConversation?.messages?.length === 0;
@@ -141,11 +141,11 @@ export default function ChatPage() {
         });
       }
       
-      await streamMessage(activeConversationId, content);
+      await streamMessage(activeConversationId, content, mcpTools);
     }
   };
 
-  const streamMessage = async (conversationId: number, content: string) => {
+  const streamMessage = async (conversationId: number, content: string, mcpTools?: MCPTool[]) => {
     setIsStreaming(true);
     setStreamingMessage("");
 
@@ -173,7 +173,7 @@ export default function ChatPage() {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, mcpTools }),
       });
 
       if (!response.ok) throw new Error("Failed to send message");

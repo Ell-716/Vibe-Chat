@@ -47,6 +47,15 @@ Key backend patterns:
 - Supports text chat, image generation, and voice capabilities
 - Streaming responses via Server-Sent Events (SSE)
 
+### MCP Tools Integration
+- **Purpose**: Enable AI to interact with external services via Zapier MCP (zapier.com/mcp)
+- **Supported Tools**:
+  - Google Drive: Browse, read, and manage files
+  - Google Sheets: Read data, add rows, modify spreadsheets
+- **UI**: + button in chat input opens tool selection popover
+- **Flow**: Selected tools appear as removable chips, context is passed to AI system prompt
+- **Schema**: MCPTool interface in `shared/schema.ts`
+
 ### Replit Integration Modules
 Located in `server/replit_integrations/`:
 - **chat/**: Text-based conversation handling with streaming
