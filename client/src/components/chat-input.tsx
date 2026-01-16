@@ -45,15 +45,15 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   return (
     <div className="p-4">
       <div className="mx-auto max-w-3xl">
-        <div className="relative flex items-center gap-3 rounded-2xl bg-[#2d2d2d] px-4 py-3">
+        <div className="relative flex items-center gap-3 rounded-2xl bg-[#2d2d2d] px-4 py-2">
           <Textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Start vibing..."
-            className="min-h-[40px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-lg text-white placeholder:text-lg placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0 flex items-center"
-            style={{ paddingTop: '8px', paddingBottom: '8px' }}
+            className="min-h-[32px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-base text-white placeholder:text-base placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0"
+            style={{ paddingTop: '4px', paddingBottom: '4px' }}
             disabled={isStreaming}
             data-testid="input-message"
           />
