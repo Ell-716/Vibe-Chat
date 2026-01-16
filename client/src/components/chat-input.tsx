@@ -56,21 +56,21 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             disabled={isStreaming}
             data-testid="input-message"
           />
-          <Button
+          <button
+            type="button"
             onClick={handleSend}
             disabled={!message.trim() || isStreaming}
             className={`
-              h-9 w-9 rounded-full shrink-0
+              shrink-0 p-1
               ${message.trim() && !isStreaming 
-                ? "bg-[#00c9a7] hover:bg-[#00b398] text-white" 
-                : "bg-[#444444] text-[#999999] cursor-not-allowed"
+                ? "text-[#00c9a7] hover:text-[#00b398]" 
+                : "text-[#666666] cursor-not-allowed"
               }
             `}
-            size="icon"
             data-testid="button-send"
           >
-            <Send className="h-4 w-4" />
-          </Button>
+            <Send className="h-5 w-5" />
+          </button>
         </div>
         <p className="mt-2 text-center text-xs text-[#666666]">
           AI can make mistakes. Verify important information.
