@@ -51,7 +51,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message AI..."
+            placeholder="Start vibing..."
             className="min-h-[24px] max-h-[120px] flex-1 resize-none border-0 bg-transparent text-[15px] text-white placeholder:text-[#999999] focus-visible:ring-0 focus-visible:ring-offset-0 py-0"
             disabled={isStreaming}
             data-testid="input-message"
