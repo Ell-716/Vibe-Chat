@@ -114,6 +114,11 @@ export default function ChatPage() {
     renameConversationMutation.mutate({ id, title });
   };
 
+  const handleGoHome = () => {
+    setActiveConversationId(null);
+    setSidebarOpen(false);
+  };
+
   const handleSendMessage = async (content: string) => {
     if (!activeConversationId) {
       const res = await apiRequest("POST", "/api/conversations", { title: content.slice(0, 50) });
@@ -232,6 +237,7 @@ export default function ChatPage() {
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
         onRenameConversation={handleRenameConversation}
+        onGoHome={handleGoHome}
         isLoading={conversationsLoading}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

@@ -20,6 +20,7 @@ interface ChatSidebarProps {
   onSelectConversation: (id: number) => void;
   onDeleteConversation: (id: number) => void;
   onRenameConversation: (id: number, title: string) => void;
+  onGoHome: () => void;
   isLoading: boolean;
   isOpen: boolean;
   onClose: () => void;
@@ -32,6 +33,7 @@ export function ChatSidebar({
   onSelectConversation,
   onDeleteConversation,
   onRenameConversation,
+  onGoHome,
   isLoading,
   isOpen,
   onClose,
@@ -107,12 +109,16 @@ export function ChatSidebar({
         data-testid="sidebar"
       >
         <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={onGoHome}
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            data-testid="button-home"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#00c9a7] to-[#00a896]">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="text-lg font-semibold text-white">Vibe Chat</span>
-          </div>
+          </button>
           <Button
             variant="ghost"
             size="icon"
