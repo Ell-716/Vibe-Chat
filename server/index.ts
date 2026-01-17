@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { startDiscordBot } from "./discord-bot";
 
 const app = express();
 const httpServer = createServer(app);
@@ -61,6 +62,14 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  
+  startDiscordBot().then((connected) => {
+    if (connected) {
+      log('Discord bot started successfully', 'discord');
+    } else {
+      log('Discord bot not started (token not configured or login failed)', 'discord');
+    }
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

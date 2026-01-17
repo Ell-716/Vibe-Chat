@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
+import { getDiscordBotStatus } from "./discord-bot";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -713,6 +714,14 @@ export async function registerRoutes(
       console.error("Error in speech-to-text:", error);
       res.status(500).json({ error: "Failed to process audio" });
     }
+  });
+
+  app.get("/api/channels/status", (req, res) => {
+    const discordStatus = getDiscordBotStatus();
+    res.json({
+      discord: discordStatus,
+      web: { connected: true },
+    });
   });
 
   return httpServer;

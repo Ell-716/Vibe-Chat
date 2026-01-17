@@ -7,6 +7,7 @@ import { ChatInput } from "@/components/chat-input";
 import { EmptyState } from "@/components/empty-state";
 import { AgentSelector } from "@/components/agent-selector";
 import { AgentSettingsModal } from "@/components/agent-settings-modal";
+import { ChannelStatus } from "@/components/channel-status";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -302,7 +303,11 @@ export default function ChatPage() {
           
           <div className="flex-1" />
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <ChannelStatus />
+            
+            <div className="w-px h-6 bg-[#333333]" />
+            
             <AgentSelector
               agents={agents}
               selectedAgent={selectedAgent}
