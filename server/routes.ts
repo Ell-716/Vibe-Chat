@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
@@ -11,9 +12,20 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
+
 const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
 });
+
+type AIModel = "gpt-4o-mini" | "claude-sonnet" | "groq-llama";
 
 const ZAPIER_MCP_URL = process.env.ZAPIER_MCP_URL;
 const ZAPIER_MCP_API_KEY = process.env.ZAPIER_MCP_API_KEY;
@@ -405,10 +417,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/models", (req, res) => {
+    const models = [
+      { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
+      { id: "claude-sonnet", name: "Claude Sonnet", provider: "Anthropic" },
+      { id: "groq-llama", name: "Llama 3 (Groq)", provider: "Groq" },
+    ];
+    res.json(models);
+  });
+
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
-      const { content, mcpTools } = req.body;
+      const { content, mcpTools, model = "gpt-4o-mini" } = req.body;
 
       if (!content || typeof content !== "string") {
         return res.status(400).json({ error: "Content is required" });
@@ -417,64 +438,108 @@ export async function registerRoutes(
       await storage.createMessage(conversationId, "user", content);
 
       const messages = await storage.getMessagesByConversation(conversationId);
-      const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      }));
-
       const systemPrompt = buildSystemPrompt(mcpTools as MCPTool[] | undefined);
-      const tools = buildOpenAITools(mcpTools as MCPTool[] | undefined);
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const allMessages: ChatCompletionMessageParam[] = [
-        { role: "system", content: systemPrompt },
-        ...chatMessages,
-      ];
-
       let fullResponse = "";
-      let continueLoop = true;
 
-      while (continueLoop) {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: allMessages,
-          tools,
-          stream: false,
-          max_completion_tokens: 2048,
+      if (model === "claude-sonnet") {
+        const anthropicMessages = messages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
+
+        const response = await anthropic.messages.create({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2048,
+          system: systemPrompt,
+          messages: anthropicMessages,
         });
 
-        const choice = response.choices[0];
-        const message = choice.message;
+        const textContent = response.content
+          .filter((block): block is Anthropic.TextBlock => block.type === "text")
+          .map((block) => block.text)
+          .join("");
 
-        if (message.tool_calls && message.tool_calls.length > 0) {
-          allMessages.push(message);
+        fullResponse = textContent;
+        res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
+      } else if (model === "groq-llama") {
+        const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
 
-          for (const toolCall of message.tool_calls) {
-            if (toolCall.type !== 'function') continue;
-            const functionName = (toolCall as any).function.name;
-            const functionArgs = JSON.parse((toolCall as any).function.arguments);
-            
-            res.write(`data: ${JSON.stringify({ content: `\n\n🔧 *Using ${functionName.replace(/_/g, ' ')}...*\n\n` })}\n\n`);
-            fullResponse += `\n\n🔧 *Using ${functionName.replace(/_/g, ' ')}...*\n\n`;
+        const allMessages: ChatCompletionMessageParam[] = [
+          { role: "system", content: systemPrompt },
+          ...chatMessages,
+        ];
 
-            const toolResult = await handleToolCall(functionName, functionArgs);
-            
-            allMessages.push({
-              role: "tool",
-              tool_call_id: toolCall.id,
-              content: toolResult,
-            });
+        const response = await groq.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages: allMessages,
+          max_tokens: 2048,
+        });
+
+        const textContent = response.choices[0]?.message?.content || "";
+        fullResponse = textContent;
+        res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
+      } else {
+        const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
+
+        const tools = buildOpenAITools(mcpTools as MCPTool[] | undefined);
+
+        const allMessages: ChatCompletionMessageParam[] = [
+          { role: "system", content: systemPrompt },
+          ...chatMessages,
+        ];
+
+        let continueLoop = true;
+
+        while (continueLoop) {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: allMessages,
+            tools,
+            stream: false,
+            max_completion_tokens: 2048,
+          });
+
+          const choice = response.choices[0];
+          const message = choice.message;
+
+          if (message.tool_calls && message.tool_calls.length > 0) {
+            allMessages.push(message);
+
+            for (const toolCall of message.tool_calls) {
+              if (toolCall.type !== 'function') continue;
+              const functionName = (toolCall as any).function.name;
+              const functionArgs = JSON.parse((toolCall as any).function.arguments);
+              
+              res.write(`data: ${JSON.stringify({ content: `\n\n🔧 *Using ${functionName.replace(/_/g, ' ')}...*\n\n` })}\n\n`);
+              fullResponse += `\n\n🔧 *Using ${functionName.replace(/_/g, ' ')}...*\n\n`;
+
+              const toolResult = await handleToolCall(functionName, functionArgs);
+              
+              allMessages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: toolResult,
+              });
+            }
+          } else {
+            const textContent = message.content || "";
+            if (textContent) {
+              fullResponse += textContent;
+              res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
+            }
+            continueLoop = false;
           }
-        } else {
-          const textContent = message.content || "";
-          if (textContent) {
-            fullResponse += textContent;
-            res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
-          }
-          continueLoop = false;
         }
       }
 

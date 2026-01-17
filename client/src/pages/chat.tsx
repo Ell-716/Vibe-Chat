@@ -7,9 +7,22 @@ import { ChatInput } from "@/components/chat-input";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Menu } from "lucide-react";
+import { Menu, ChevronDown } from "lucide-react";
 import type { Conversation, Message, MCPTool } from "@shared/schema";
+
+interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+}
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
@@ -20,8 +33,13 @@ export default function ChatPage() {
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedModel, setSelectedModel] = useState<string>("gpt-4o-mini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const { data: models = [] } = useQuery<AIModel[]>({
+    queryKey: ["/api/models"],
+  });
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -173,7 +191,7 @@ export default function ChatPage() {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, mcpTools }),
+        body: JSON.stringify({ content, mcpTools, model: selectedModel }),
       });
 
       if (!response.ok) throw new Error("Failed to send message");
@@ -245,16 +263,42 @@ export default function ChatPage() {
       />
 
       <div className="flex flex-1 flex-col min-w-0">
-        <div className="lg:hidden flex h-12 items-center px-4">
+        <div className="flex h-12 items-center justify-between px-4 border-b border-[#333333]">
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-[#333333]"
+            className="lg:hidden text-white hover:bg-[#333333]"
             onClick={() => setSidebarOpen(true)}
             data-testid="button-sidebar-toggle"
           >
             <Menu className="h-5 w-5" />
           </Button>
+          
+          <div className="flex-1" />
+          
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger 
+              className="w-[180px] bg-[#2d2d2d] border-[#404040] text-white hover:bg-[#333333]"
+              data-testid="select-model"
+            >
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#2d2d2d] border-[#404040]">
+              {models.map((model) => (
+                <SelectItem 
+                  key={model.id} 
+                  value={model.id}
+                  className="text-white hover:bg-[#404040] focus:bg-[#404040] focus:text-white"
+                  data-testid={`select-model-${model.id}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{model.name}</span>
+                    <span className="text-xs text-[#888888]">({model.provider})</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <main className="flex-1 overflow-hidden flex flex-col">
