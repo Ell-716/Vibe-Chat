@@ -154,7 +154,7 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
         const currentCodeIndex = codeBlockIndex++;
         return (
           <div key={index} className="relative my-3 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between bg-black/30 dark:bg-black/50 px-4 py-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between bg-muted px-4 py-2 text-xs text-muted-foreground">
               <span>{part.language}</span>
               <Button
                 variant="ghost"
@@ -166,7 +166,7 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
                 {copiedCodeIndex === currentCodeIndex ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               </Button>
             </div>
-            <pre className="bg-black/30 dark:bg-black/50 px-4 py-3 overflow-x-auto">
+            <pre className="bg-muted px-4 py-3 overflow-x-auto">
               <code className="text-sm font-mono text-foreground">{part.content}</code>
             </pre>
           </div>

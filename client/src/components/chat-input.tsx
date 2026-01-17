@@ -208,7 +208,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             className={`
               shrink-0 p-1 transition-colors
               ${isRecording 
-                ? "text-red-500 hover:text-red-400 animate-pulse" 
+                ? "text-destructive hover:text-destructive/80 animate-pulse" 
                 : isTranscribing
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary"

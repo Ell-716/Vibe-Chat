@@ -133,7 +133,7 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-[#1a1a1a] border-[#404040] text-white">
+      <DialogContent className="max-w-2xl bg-background border-border text-foreground">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {isEditing ? (editingAgent ? "Edit Agent" : "Create New Agent") : "Manage Agents"}
@@ -144,27 +144,26 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm text-[#999999]">Name</label>
+                <label className="text-sm text-muted-foreground">Name</label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Agent name"
-                  className="bg-[#2d2d2d] border-[#404040] text-white"
+                  className="bg-card border-border text-foreground"
                   data-testid="input-agent-name"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-[#999999]">Icon</label>
+                <label className="text-sm text-muted-foreground">Icon</label>
                 <Select value={formData.icon} onValueChange={(value) => setFormData({ ...formData, icon: value })}>
-                  <SelectTrigger className="bg-[#2d2d2d] border-[#404040] text-white" data-testid="select-agent-icon">
+                  <SelectTrigger className="bg-card border-border text-foreground" data-testid="select-agent-icon">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#2d2d2d] border-[#404040]">
+                  <SelectContent className="bg-popover border-popover-border">
                     {iconOptions.map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}
-                        className="text-white hover:bg-[#404040]"
                       >
                         <span className="flex items-center gap-2">
                           <option.Icon className="h-4 w-4" />
@@ -177,22 +176,22 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-[#999999]">Description</label>
+              <label className="text-sm text-muted-foreground">Description</label>
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of the agent"
-                className="bg-[#2d2d2d] border-[#404040] text-white"
+                className="bg-card border-border text-foreground"
                 data-testid="input-agent-description"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-[#999999]">System Prompt</label>
+              <label className="text-sm text-muted-foreground">System Prompt</label>
               <Textarea
                 value={formData.systemPrompt}
                 onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
                 placeholder="Instructions that define how the agent behaves..."
-                className="bg-[#2d2d2d] border-[#404040] text-white min-h-[150px]"
+                className="bg-card border-border text-foreground min-h-[150px]"
                 data-testid="textarea-agent-prompt"
               />
             </div>
@@ -200,7 +199,6 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
               <Button
                 variant="ghost"
                 onClick={resetForm}
-                className="text-white hover:bg-[#333333]"
                 data-testid="button-cancel-agent"
               >
                 Cancel
@@ -208,7 +206,7 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
               <Button
                 onClick={handleSave}
                 disabled={!formData.name || !formData.systemPrompt}
-                className="bg-[#00c9a7] text-white hover:bg-[#00b398]"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
                 data-testid="button-save-agent"
               >
                 {editingAgent ? "Save Changes" : "Create Agent"}
@@ -225,25 +223,25 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
                     key={agent.id}
                     className={`flex items-start gap-3 p-4 rounded-lg border ${
                       selectedAgent?.id === agent.id
-                        ? "border-[#00c9a7] bg-[#00c9a7]/10"
-                        : "border-[#404040] bg-[#2d2d2d]"
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-card"
                     }`}
                   >
-                    <Icon className={`h-6 w-6 mt-0.5 ${selectedAgent?.id === agent.id ? "text-[#00c9a7]" : "text-[#999999]"}`} />
+                    <Icon className={`h-6 w-6 mt-0.5 ${selectedAgent?.id === agent.id ? "text-primary" : "text-muted-foreground"}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{agent.name}</span>
                         {agent.isDefault && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#404040] text-[#999999]">Default</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Default</span>
                         )}
                       </div>
-                      <p className="text-sm text-[#999999] mt-1 line-clamp-2">{agent.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{agent.description}</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-[#999999] hover:text-white hover:bg-[#404040]"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={() => handleEditAgent(agent)}
                         data-testid={`button-edit-agent-${agent.id}`}
                       >
@@ -253,7 +251,7 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-[#999999] hover:text-red-500 hover:bg-[#404040]"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           onClick={() => handleDelete(agent)}
                           data-testid={`button-delete-agent-${agent.id}`}
                         >
@@ -268,7 +266,7 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
             <Button
               onClick={handleCreateNew}
               variant="outline"
-              className="w-full border-dashed border-[#404040] text-[#999999] hover:text-white hover:bg-[#333333]"
+              className="w-full border-dashed"
               data-testid="button-create-agent"
             >
               <Plus className="h-4 w-4 mr-2" />
