@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
@@ -12,9 +12,7 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -25,7 +23,7 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
 });
 
-type AIModel = "gpt-4o-mini" | "claude-sonnet" | "groq-llama";
+type AIModel = "gpt-4o-mini" | "gemini-flash" | "groq-llama";
 
 const ZAPIER_MCP_URL = process.env.ZAPIER_MCP_URL;
 const ZAPIER_MCP_API_KEY = process.env.ZAPIER_MCP_API_KEY;
@@ -420,7 +418,7 @@ export async function registerRoutes(
   app.get("/api/models", (req, res) => {
     const models = [
       { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
-      { id: "claude-sonnet", name: "Claude Sonnet", provider: "Anthropic" },
+      { id: "gemini-flash", name: "Gemini Flash", provider: "Google" },
       { id: "groq-llama", name: "Llama 3 (Groq)", provider: "Groq" },
     ];
     res.json(models);
@@ -446,23 +444,22 @@ export async function registerRoutes(
 
       let fullResponse = "";
 
-      if (model === "claude-sonnet") {
-        const anthropicMessages = messages.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
+      if (model === "gemini-flash") {
+        const geminiModel = gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
+        
+        const history = messages.slice(0, -1).map((m) => ({
+          role: m.role === "user" ? "user" : "model",
+          parts: [{ text: m.content }],
         }));
 
-        const response = await anthropic.messages.create({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 2048,
-          system: systemPrompt,
-          messages: anthropicMessages,
+        const chat = geminiModel.startChat({
+          history: history as any,
+          systemInstruction: systemPrompt,
         });
 
-        const textContent = response.content
-          .filter((block): block is Anthropic.TextBlock => block.type === "text")
-          .map((block) => block.text)
-          .join("");
+        const lastMessage = messages[messages.length - 1];
+        const result = await chat.sendMessage(lastMessage.content);
+        const textContent = result.response.text();
 
         fullResponse = textContent;
         res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
