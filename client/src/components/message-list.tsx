@@ -248,28 +248,32 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
 }
 
 export function MessageList({ messages, streamingMessage, isStreaming, messagesEndRef, voiceResponseEnabled }: MessageListProps) {
-  const prevMessagesLengthRef = useRef(messages.length);
-  const wasStreamingRef = useRef(false);
   const lastPlayedMessageIdRef = useRef<number | null>(null);
+  const wasStreamingRef = useRef(false);
 
+  // Track when streaming ends
   useEffect(() => {
-    const currentLength = messages.length;
-    const prevLength = prevMessagesLengthRef.current;
-    const wasStreaming = wasStreamingRef.current;
-
-    // Auto-play voice response when streaming finishes and a new assistant message is added
-    if (voiceResponseEnabled && wasStreaming && !isStreaming && currentLength > prevLength) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.role === "assistant" && lastMessage.id !== lastPlayedMessageIdRef.current) {
-        lastPlayedMessageIdRef.current = lastMessage.id;
-        playTextToSpeech(lastMessage.content).catch((error) => {
-          console.error("Error playing voice response:", error);
-        });
-      }
+    if (isStreaming) {
+      wasStreamingRef.current = true;
     }
+  }, [isStreaming]);
 
-    prevMessagesLengthRef.current = currentLength;
-    wasStreamingRef.current = isStreaming;
+  // Play TTS when a new assistant message appears after streaming
+  useEffect(() => {
+    if (!voiceResponseEnabled || isStreaming) return;
+    
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") return;
+    
+    // Only play if we were streaming and this message hasn't been played yet
+    if (wasStreamingRef.current && lastMessage.id !== lastPlayedMessageIdRef.current) {
+      lastPlayedMessageIdRef.current = lastMessage.id;
+      wasStreamingRef.current = false;
+      
+      playTextToSpeech(lastMessage.content).catch((error) => {
+        console.error("Error playing voice response:", error);
+      });
+    }
   }, [messages, isStreaming, voiceResponseEnabled]);
 
   return (
