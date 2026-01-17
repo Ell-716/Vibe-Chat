@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage } from "@shared/schema";
+import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Agent, defaultAgents } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -12,12 +12,18 @@ export interface IStorage {
   deleteConversation(id: number): Promise<void>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
   createMessage(conversationId: number, role: string, content: string): Promise<Message>;
+  getAllAgents(): Promise<Agent[]>;
+  getAgent(id: string): Promise<Agent | undefined>;
+  createAgent(agent: Omit<Agent, 'id'>): Promise<Agent>;
+  updateAgent(id: string, agent: Partial<Agent>): Promise<Agent | undefined>;
+  deleteAgent(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private conversations: Map<number, Conversation>;
   private messages: Map<number, Message>;
+  private agents: Map<string, Agent>;
   private conversationIdCounter: number;
   private messageIdCounter: number;
 
@@ -25,8 +31,14 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.conversations = new Map();
     this.messages = new Map();
+    this.agents = new Map();
     this.conversationIdCounter = 1;
     this.messageIdCounter = 1;
+    
+    // Initialize with default agents
+    for (const agent of defaultAgents) {
+      this.agents.set(agent.id, agent);
+    }
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -101,6 +113,37 @@ export class MemStorage implements IStorage {
     };
     this.messages.set(id, message);
     return message;
+  }
+
+  async getAllAgents(): Promise<Agent[]> {
+    return Array.from(this.agents.values());
+  }
+
+  async getAgent(id: string): Promise<Agent | undefined> {
+    return this.agents.get(id);
+  }
+
+  async createAgent(agent: Omit<Agent, 'id'>): Promise<Agent> {
+    const id = randomUUID();
+    const newAgent: Agent = { ...agent, id };
+    this.agents.set(id, newAgent);
+    return newAgent;
+  }
+
+  async updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined> {
+    const agent = this.agents.get(id);
+    if (!agent) return undefined;
+    const updatedAgent = { ...agent, ...updates, id };
+    this.agents.set(id, updatedAgent);
+    return updatedAgent;
+  }
+
+  async deleteAgent(id: string): Promise<void> {
+    // Don't allow deleting default agents
+    const agent = this.agents.get(id);
+    if (agent && !agent.isDefault) {
+      this.agents.delete(id);
+    }
   }
 }
 
