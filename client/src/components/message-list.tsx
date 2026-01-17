@@ -1,10 +1,9 @@
-import { useRef, useEffect } from "react";
-import { Bot, Copy, Check } from "lucide-react";
+import { useState } from "react";
+import { Bot, Copy, Check, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TypingIndicator } from "@/components/typing-indicator";
 import type { Message } from "@shared/schema";
-import { useState } from "react";
 
 interface MessageListProps {
   messages: Message[];
@@ -13,9 +12,13 @@ interface MessageListProps {
   messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
+let currentAudio: HTMLAudioElement | null = null;
+
 function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const isUser = message.role === "user";
 
   const handleCopy = async () => {
@@ -28,6 +31,57 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
     await navigator.clipboard.writeText(code);
     setCopiedCodeIndex(index);
     setTimeout(() => setCopiedCodeIndex(null), 2000);
+  };
+
+  const handleSpeak = async () => {
+    if (isPlaying && currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+      setIsPlaying(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/text-to-speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: message.content }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate speech");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      if (currentAudio) {
+        currentAudio.pause();
+      }
+      
+      const audio = new Audio(url);
+      currentAudio = audio;
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+        currentAudio = null;
+        URL.revokeObjectURL(url);
+      };
+      
+      audio.onerror = () => {
+        setIsPlaying(false);
+        currentAudio = null;
+        URL.revokeObjectURL(url);
+      };
+
+      setIsPlaying(true);
+      await audio.play();
+    } catch (error) {
+      console.error("Error playing speech:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatContent = (content: string) => {
@@ -124,15 +178,33 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
         </div>
 
         {!isUser && !isStreaming && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute -right-10 top-1 h-8 w-8 opacity-0 group-hover:opacity-100 text-[#999999] hover:text-white hover:bg-transparent transition-opacity"
-            onClick={handleCopy}
-            data-testid="button-copy-message"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </Button>
+          <div className="absolute -right-20 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-[#999999] hover:text-white hover:bg-transparent"
+              onClick={handleSpeak}
+              disabled={isLoading}
+              data-testid="button-speak-message"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isPlaying ? (
+                <VolumeX className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-[#999999] hover:text-white hover:bg-transparent"
+              onClick={handleCopy}
+              data-testid="button-copy-message"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
         )}
       </div>
     </div>

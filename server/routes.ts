@@ -2,12 +2,17 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+const elevenlabs = new ElevenLabsClient({
+  apiKey: process.env.ELEVENLABS_API_KEY,
 });
 
 const ZAPIER_MCP_URL = process.env.ZAPIER_MCP_URL;
@@ -485,6 +490,67 @@ export async function registerRoutes(
       } else {
         res.status(500).json({ error: "Failed to send message" });
       }
+    }
+  });
+
+  app.post("/api/text-to-speech", async (req, res) => {
+    try {
+      const { text, voiceId = "21m00Tcm4TlvDq8ikWAM" } = req.body;
+
+      if (!text || typeof text !== "string") {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      if (!process.env.ELEVENLABS_API_KEY) {
+        return res.status(500).json({ error: "ElevenLabs API key not configured" });
+      }
+
+      const cleanText = text
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/🔧.*?\.\.\.\*\n\n/g, "")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/#+\s/g, "")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .trim();
+
+      if (!cleanText) {
+        return res.status(400).json({ error: "No speakable text found" });
+      }
+
+      const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
+        text: cleanText.substring(0, 5000),
+        modelId: "eleven_multilingual_v2",
+      });
+
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Transfer-Encoding", "chunked");
+
+      const reader = audioStream.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      res.end();
+    } catch (error) {
+      console.error("Error generating speech:", error);
+      res.status(500).json({ error: "Failed to generate speech" });
+    }
+  });
+
+  app.get("/api/voices", async (req, res) => {
+    try {
+      if (!process.env.ELEVENLABS_API_KEY) {
+        return res.status(500).json({ error: "ElevenLabs API key not configured" });
+      }
+
+      const voices = await elevenlabs.voices.getAll();
+      res.json(voices);
+    } catch (error) {
+      console.error("Error fetching voices:", error);
+      res.status(500).json({ error: "Failed to fetch voices" });
     }
   });
 
