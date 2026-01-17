@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
@@ -11,8 +10,6 @@ const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
-
-const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -23,7 +20,7 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
 });
 
-type AIModel = "gpt-4o-mini" | "gemini-flash" | "groq-llama";
+type AIModel = "gpt-4o-mini" | "groq-llama";
 
 const ZAPIER_MCP_URL = process.env.ZAPIER_MCP_URL;
 const ZAPIER_MCP_API_KEY = process.env.ZAPIER_MCP_API_KEY;
@@ -418,8 +415,7 @@ export async function registerRoutes(
   app.get("/api/models", (req, res) => {
     const models = [
       { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
-      { id: "gemini-flash", name: "Gemini Flash", provider: "Google" },
-      { id: "groq-llama", name: "Llama 3 (Groq)", provider: "Groq" },
+      { id: "groq-llama", name: "Llama 3", provider: "Groq" },
     ];
     res.json(models);
   });
@@ -444,26 +440,7 @@ export async function registerRoutes(
 
       let fullResponse = "";
 
-      if (model === "gemini-flash") {
-        const geminiModel = gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
-        
-        const history = messages.slice(0, -1).map((m) => ({
-          role: m.role === "user" ? "user" : "model",
-          parts: [{ text: m.content }],
-        }));
-
-        const chat = geminiModel.startChat({
-          history: history as any,
-          systemInstruction: systemPrompt,
-        });
-
-        const lastMessage = messages[messages.length - 1];
-        const result = await chat.sendMessage(lastMessage.content);
-        const textContent = result.response.text();
-
-        fullResponse = textContent;
-        res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
-      } else if (model === "groq-llama") {
+      if (model === "groq-llama") {
         const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,

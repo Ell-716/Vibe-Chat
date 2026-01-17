@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Menu, ChevronDown } from "lucide-react";
+import { Menu } from "lucide-react";
 import type { Conversation, Message, MCPTool } from "@shared/schema";
 
 interface AIModel {
@@ -263,7 +263,7 @@ export default function ChatPage() {
       />
 
       <div className="flex flex-1 flex-col min-w-0">
-        <div className="flex h-12 items-center justify-between px-4 border-b border-[#333333]">
+        <div className="flex h-12 items-center justify-between px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -278,10 +278,12 @@ export default function ChatPage() {
           
           <Select value={selectedModel} onValueChange={setSelectedModel}>
             <SelectTrigger 
-              className="w-[180px] bg-[#2d2d2d] border-[#404040] text-white hover:bg-[#333333]"
+              className="w-auto gap-2 bg-transparent border-0 text-white hover:bg-[#333333] focus:ring-0"
               data-testid="select-model"
             >
-              <SelectValue placeholder="Select model" />
+              <SelectValue placeholder="Select model">
+                {models.find(m => m.id === selectedModel)?.name || "Select model"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-[#2d2d2d] border-[#404040]">
               {models.map((model) => (
