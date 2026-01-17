@@ -302,8 +302,8 @@ async function handleToolCall(functionName: string, args: Record<string, any>): 
   }
 }
 
-function buildSystemPrompt(mcpTools?: MCPTool[]): string {
-  let prompt = "You are a helpful AI assistant called Vibe Chat. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.";
+function buildSystemPrompt(agentPrompt?: string, mcpTools?: MCPTool[]): string {
+  let prompt = agentPrompt || "You are a helpful AI assistant called Vibe Chat. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.";
   
   if (mcpTools && mcpTools.length > 0) {
     prompt += "\n\nYou have access to the following integrations:";
@@ -420,10 +420,76 @@ export async function registerRoutes(
     res.json(models);
   });
 
+  // Agent management endpoints
+  app.get("/api/agents", async (req, res) => {
+    try {
+      const agents = await storage.getAllAgents();
+      res.json(agents);
+    } catch (error) {
+      console.error("Error fetching agents:", error);
+      res.status(500).json({ error: "Failed to fetch agents" });
+    }
+  });
+
+  app.get("/api/agents/:id", async (req, res) => {
+    try {
+      const agent = await storage.getAgent(req.params.id);
+      if (!agent) {
+        return res.status(404).json({ error: "Agent not found" });
+      }
+      res.json(agent);
+    } catch (error) {
+      console.error("Error fetching agent:", error);
+      res.status(500).json({ error: "Failed to fetch agent" });
+    }
+  });
+
+  app.post("/api/agents", async (req, res) => {
+    try {
+      const { name, description, systemPrompt, icon } = req.body;
+      if (!name || !systemPrompt) {
+        return res.status(400).json({ error: "Name and system prompt are required" });
+      }
+      const agent = await storage.createAgent({
+        name,
+        description: description || "",
+        systemPrompt,
+        icon: icon || "bot",
+      });
+      res.status(201).json(agent);
+    } catch (error) {
+      console.error("Error creating agent:", error);
+      res.status(500).json({ error: "Failed to create agent" });
+    }
+  });
+
+  app.patch("/api/agents/:id", async (req, res) => {
+    try {
+      const agent = await storage.updateAgent(req.params.id, req.body);
+      if (!agent) {
+        return res.status(404).json({ error: "Agent not found" });
+      }
+      res.json(agent);
+    } catch (error) {
+      console.error("Error updating agent:", error);
+      res.status(500).json({ error: "Failed to update agent" });
+    }
+  });
+
+  app.delete("/api/agents/:id", async (req, res) => {
+    try {
+      await storage.deleteAgent(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting agent:", error);
+      res.status(500).json({ error: "Failed to delete agent" });
+    }
+  });
+
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
-      const { content, mcpTools, model = "gpt-4o-mini" } = req.body;
+      const { content, mcpTools, model = "gpt-4o-mini", agentId } = req.body;
 
       if (!content || typeof content !== "string") {
         return res.status(400).json({ error: "Content is required" });
@@ -432,7 +498,17 @@ export async function registerRoutes(
       await storage.createMessage(conversationId, "user", content);
 
       const messages = await storage.getMessagesByConversation(conversationId);
-      const systemPrompt = buildSystemPrompt(mcpTools as MCPTool[] | undefined);
+      
+      // Get agent's system prompt if specified
+      let agentPrompt: string | undefined;
+      if (agentId) {
+        const agent = await storage.getAgent(agentId);
+        if (agent) {
+          agentPrompt = agent.systemPrompt;
+        }
+      }
+      
+      const systemPrompt = buildSystemPrompt(agentPrompt, mcpTools as MCPTool[] | undefined);
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
