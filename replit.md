@@ -40,6 +40,7 @@ Key backend patterns:
 - **Users**: Basic user model with id, username, password
 - **Conversations**: Chat sessions with title and timestamp
 - **Messages**: Individual messages with role (user/assistant), content, and conversation reference
+- **Agents**: Specialized AI agents with custom system prompts (id, name, description, systemPrompt, icon, isDefault)
 
 ### AI Integration
 - Uses OpenAI-compatible API through Replit AI Integrations
@@ -55,6 +56,16 @@ Key backend patterns:
 - **UI**: + button in chat input opens tool selection popover
 - **Flow**: Selected tools appear as removable chips, context is passed to AI system prompt
 - **Schema**: MCPTool interface in `shared/schema.ts`
+
+### Agent Management System
+- **Purpose**: Switch between specialized AI agents with different system prompts
+- **Default Agents**: General Assistant, Code Expert, Creative Writer, Data Analyst, Learning Tutor
+- **Custom Agents**: Users can create/edit/delete custom agents with custom system prompts
+- **UI Components**:
+  - `AgentSelector`: Dropdown in header to switch agents
+  - `AgentSettingsModal`: Full CRUD interface for managing agents
+- **API Endpoints**: `/api/agents` (GET, POST), `/api/agents/:id` (GET, PATCH, DELETE)
+- **Integration**: Selected agent's system prompt is passed to the chat API
 
 ### Replit Integration Modules
 Located in `server/replit_integrations/`:
