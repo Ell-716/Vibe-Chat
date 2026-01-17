@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bot, Copy, Check, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,9 +10,45 @@ interface MessageListProps {
   streamingMessage: string;
   isStreaming: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  voiceResponseEnabled?: boolean;
 }
 
 let currentAudio: HTMLAudioElement | null = null;
+
+async function playTextToSpeech(text: string): Promise<void> {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+
+  const response = await fetch("/api/text-to-speech", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to generate speech");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  
+  const audio = new Audio(url);
+  currentAudio = audio;
+  
+  audio.onended = () => {
+    currentAudio = null;
+    URL.revokeObjectURL(url);
+  };
+  
+  audio.onerror = () => {
+    currentAudio = null;
+    URL.revokeObjectURL(url);
+  };
+
+  await audio.play();
+}
 
 function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -211,7 +247,31 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
   );
 }
 
-export function MessageList({ messages, streamingMessage, isStreaming, messagesEndRef }: MessageListProps) {
+export function MessageList({ messages, streamingMessage, isStreaming, messagesEndRef, voiceResponseEnabled }: MessageListProps) {
+  const prevMessagesLengthRef = useRef(messages.length);
+  const wasStreamingRef = useRef(false);
+  const lastPlayedMessageIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const currentLength = messages.length;
+    const prevLength = prevMessagesLengthRef.current;
+    const wasStreaming = wasStreamingRef.current;
+
+    // Auto-play voice response when streaming finishes and a new assistant message is added
+    if (voiceResponseEnabled && wasStreaming && !isStreaming && currentLength > prevLength) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === "assistant" && lastMessage.id !== lastPlayedMessageIdRef.current) {
+        lastPlayedMessageIdRef.current = lastMessage.id;
+        playTextToSpeech(lastMessage.content).catch((error) => {
+          console.error("Error playing voice response:", error);
+        });
+      }
+    }
+
+    prevMessagesLengthRef.current = currentLength;
+    wasStreamingRef.current = isStreaming;
+  }, [messages, isStreaming, voiceResponseEnabled]);
+
   return (
     <ScrollArea className="flex-1 px-4 md:px-6">
       <div className="mx-auto max-w-3xl py-6 space-y-6">
