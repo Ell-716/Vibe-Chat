@@ -67,6 +67,19 @@ Key backend patterns:
 - **API Endpoints**: `/api/agents` (GET, POST), `/api/agents/:id` (GET, PATCH, DELETE)
 - **Integration**: Selected agent's system prompt is passed to the chat API
 
+### Multi-Channel Support (Discord)
+- **Purpose**: Allow users to chat with the AI via Discord in addition to the web interface
+- **Implementation**: Discord.js bot in `server/discord-bot.ts`
+- **Features**:
+  - Responds to direct messages (DMs)
+  - Responds when mentioned in servers (@Vibe Chat)
+  - Maintains per-user conversation history (last 10 exchanges)
+  - Handles long responses by splitting at natural breakpoints (newlines, spaces)
+  - Shows typing indicator while generating response
+- **Configuration**: Requires `DISCORD_BOT_TOKEN` environment variable
+- **Status Endpoint**: `/api/channels/status` returns connection status for all channels
+- **UI Component**: `ChannelStatus` in header shows Discord bot connection status
+
 ### Replit Integration Modules
 Located in `server/replit_integrations/`:
 - **chat/**: Text-based conversation handling with streaming

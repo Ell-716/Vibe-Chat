@@ -79,7 +79,23 @@ async function handleMessage(message: Message) {
     const response = await generateAIResponse(message.author.id, content);
     
     if (response.length > 2000) {
-      const chunks = response.match(/.{1,1990}/g) || [response];
+      const chunks: string[] = [];
+      let remaining = response;
+      while (remaining.length > 0) {
+        if (remaining.length <= 1990) {
+          chunks.push(remaining);
+          break;
+        }
+        let splitIndex = remaining.lastIndexOf('\n', 1990);
+        if (splitIndex === -1 || splitIndex < 500) {
+          splitIndex = remaining.lastIndexOf(' ', 1990);
+        }
+        if (splitIndex === -1 || splitIndex < 500) {
+          splitIndex = 1990;
+        }
+        chunks.push(remaining.slice(0, splitIndex));
+        remaining = remaining.slice(splitIndex).trimStart();
+      }
       for (const chunk of chunks) {
         await message.reply(chunk);
       }
