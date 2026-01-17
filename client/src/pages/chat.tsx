@@ -5,6 +5,8 @@ import { ChatSidebar } from "@/components/chat-sidebar";
 import { MessageList } from "@/components/message-list";
 import { ChatInput } from "@/components/chat-input";
 import { EmptyState } from "@/components/empty-state";
+import { AgentSelector } from "@/components/agent-selector";
+import { AgentSettingsModal } from "@/components/agent-settings-modal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Menu, Volume2, VolumeX } from "lucide-react";
-import type { Conversation, Message, MCPTool } from "@shared/schema";
+import type { Conversation, Message, MCPTool, Agent } from "@shared/schema";
 
 interface AIModel {
   id: string;
@@ -38,6 +40,8 @@ export default function ChatPage() {
     const saved = localStorage.getItem("voiceResponseEnabled");
     return saved ? JSON.parse(saved) : false;
   });
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -50,6 +54,18 @@ export default function ChatPage() {
   const { data: models = [] } = useQuery<AIModel[]>({
     queryKey: ["/api/models"],
   });
+
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
+  });
+
+  // Set default agent when agents load
+  useEffect(() => {
+    if (agents.length > 0 && !selectedAgent) {
+      const defaultAgent = agents.find(a => a.isDefault) || agents[0];
+      setSelectedAgent(defaultAgent);
+    }
+  }, [agents, selectedAgent]);
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -201,7 +217,7 @@ export default function ChatPage() {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, mcpTools, model: selectedModel }),
+        body: JSON.stringify({ content, mcpTools, model: selectedModel, agentId: selectedAgent?.id }),
       });
 
       if (!response.ok) throw new Error("Failed to send message");
@@ -287,6 +303,13 @@ export default function ChatPage() {
           <div className="flex-1" />
           
           <div className="flex items-center gap-2">
+            <AgentSelector
+              agents={agents}
+              selectedAgent={selectedAgent}
+              onSelectAgent={setSelectedAgent}
+              onOpenSettings={() => setAgentSettingsOpen(true)}
+            />
+
             <Button
               variant="ghost"
               size="icon"
@@ -357,6 +380,14 @@ export default function ChatPage() {
           />
         </main>
       </div>
+
+      <AgentSettingsModal
+        open={agentSettingsOpen}
+        onOpenChange={setAgentSettingsOpen}
+        agents={agents}
+        selectedAgent={selectedAgent}
+        onSelectAgent={setSelectedAgent}
+      />
     </div>
   );
 }
