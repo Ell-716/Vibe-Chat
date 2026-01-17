@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Menu } from "lucide-react";
+import { Menu, Volume2, VolumeX } from "lucide-react";
 import type { Conversation, Message, MCPTool } from "@shared/schema";
 
 interface AIModel {
@@ -34,8 +34,18 @@ export default function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4o-mini");
+  const [voiceResponseEnabled, setVoiceResponseEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem("voiceResponseEnabled");
+    return saved ? JSON.parse(saved) : false;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const toggleVoiceResponse = () => {
+    const newValue = !voiceResponseEnabled;
+    setVoiceResponseEnabled(newValue);
+    localStorage.setItem("voiceResponseEnabled", JSON.stringify(newValue));
+  };
 
   const { data: models = [] } = useQuery<AIModel[]>({
     queryKey: ["/api/models"],
@@ -276,31 +286,44 @@ export default function ChatPage() {
           
           <div className="flex-1" />
           
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger 
-              className="w-auto gap-2 bg-transparent border-0 text-white hover:bg-[#333333] focus:ring-0"
-              data-testid="select-model"
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-9 w-9 ${voiceResponseEnabled ? "text-[#00c9a7]" : "text-[#666666]"} hover:bg-[#333333]`}
+              onClick={toggleVoiceResponse}
+              title={voiceResponseEnabled ? "Voice responses enabled" : "Voice responses disabled"}
+              data-testid="button-voice-toggle"
             >
-              <SelectValue placeholder="Select model">
-                {models.find(m => m.id === selectedModel)?.name || "Select model"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="bg-[#2d2d2d] border-[#404040]">
-              {models.map((model) => (
-                <SelectItem 
-                  key={model.id} 
-                  value={model.id}
-                  className="text-white hover:bg-[#404040] focus:bg-[#404040] focus:text-white"
-                  data-testid={`select-model-${model.id}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{model.name}</span>
-                    <span className="text-xs text-[#888888]">({model.provider})</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              {voiceResponseEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            </Button>
+            
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger 
+                className="w-auto gap-2 bg-transparent border-0 text-white hover:bg-[#333333] focus:ring-0"
+                data-testid="select-model"
+              >
+                <SelectValue placeholder="Select model">
+                  {models.find(m => m.id === selectedModel)?.name || "Select model"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-[#2d2d2d] border-[#404040]">
+                {models.map((model) => (
+                  <SelectItem 
+                    key={model.id} 
+                    value={model.id}
+                    className="text-white hover:bg-[#404040] focus:bg-[#404040] focus:text-white"
+                    data-testid={`select-model-${model.id}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{model.name}</span>
+                      <span className="text-xs text-[#888888]">({model.provider})</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <main className="flex-1 overflow-hidden flex flex-col">
@@ -324,6 +347,7 @@ export default function ChatPage() {
               streamingMessage={streamingMessage}
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef}
+              voiceResponseEnabled={voiceResponseEnabled}
             />
           )}
 
