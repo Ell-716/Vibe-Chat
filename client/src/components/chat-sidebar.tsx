@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UserMenu } from "@/components/user-menu";
 import type { Conversation } from "@shared/schema";
 
 interface ChatSidebarProps {
@@ -102,7 +103,7 @@ export function ChatSidebar({
       <aside
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 w-[260px] 
-          flex flex-col bg-[#252525]
+          flex flex-col bg-sidebar
           transform transition-transform duration-200 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
@@ -114,15 +115,15 @@ export function ChatSidebar({
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid="button-home"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#00c9a7] to-[#00a896]">
-              <Sparkles className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#00a896]">
+              <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-white">Vibe Chat</span>
+            <span className="text-lg font-semibold text-sidebar-foreground">Vibe Chat</span>
           </button>
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-white hover:bg-[#333333]"
+            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={onClose}
             data-testid="button-close-sidebar"
           >
@@ -133,7 +134,7 @@ export function ChatSidebar({
         <div className="px-4 pb-4">
           <Button
             onClick={onNewChat}
-            className="w-full bg-[#00c9a7] hover:bg-[#00b398] text-white font-medium"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
             data-testid="button-new-chat"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -145,18 +146,18 @@ export function ChatSidebar({
           {isLoading ? (
             <div className="space-y-2 px-2">
               {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full bg-[#2d2d2d]" />
+                <Skeleton key={i} className="h-10 w-full bg-sidebar-accent" />
               ))}
             </div>
           ) : conversations.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-[#999999]">
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               No conversations yet
             </div>
           ) : (
             <div className="space-y-4">
               {groups.map((group) => (
                 <div key={group.label}>
-                  <h3 className="px-3 py-2 text-xs font-medium text-[#999999] uppercase tracking-wider">
+                  <h3 className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {group.label}
                   </h3>
                   <div className="space-y-1">
@@ -168,14 +169,14 @@ export function ChatSidebar({
                           transition-colors duration-150
                           ${
                             activeConversationId === conversation.id
-                              ? "bg-[#2d2d2d]"
-                              : "hover:bg-[#2d2d2d]/50"
+                              ? "bg-sidebar-accent"
+                              : "hover:bg-sidebar-accent/50"
                           }
                         `}
                         onClick={() => editingId !== conversation.id && onSelectConversation(conversation.id)}
                         data-testid={`conversation-item-${conversation.id}`}
                       >
-                        <MessageSquare className="h-4 w-4 text-[#999999]" />
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
                         {editingId === conversation.id ? (
                           <div className="flex-1 flex items-center gap-1">
                             <Input
@@ -185,7 +186,7 @@ export function ChatSidebar({
                                 if (e.key === "Enter") handleSaveRename();
                                 if (e.key === "Escape") handleCancelRename();
                               }}
-                              className="h-7 text-sm bg-[#1f1f1f] border-[#00c9a7] text-white"
+                              className="h-7 text-sm bg-background border-primary text-foreground"
                               autoFocus
                               onClick={(e) => e.stopPropagation()}
                               data-testid={`input-rename-${conversation.id}`}
@@ -193,7 +194,7 @@ export function ChatSidebar({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-[#00c9a7] hover:text-[#00c9a7] hover:bg-transparent shrink-0"
+                              className="h-6 w-6 text-primary hover:text-primary hover:bg-transparent shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleSaveRename();
@@ -205,7 +206,7 @@ export function ChatSidebar({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-[#999999] hover:text-white hover:bg-transparent shrink-0"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-transparent shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCancelRename();
@@ -217,27 +218,27 @@ export function ChatSidebar({
                           </div>
                         ) : (
                           <>
-                            <span className="truncate text-sm text-white">
+                            <span className="truncate text-sm text-sidebar-foreground">
                               {conversation.title}
                             </span>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
                                   type="button"
-                                  className="flex items-center justify-center h-6 w-6 rounded text-[#666666] hover:text-white hover:bg-[#3d3d3d]"
+                                  className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
                                   onClick={(e) => e.stopPropagation()}
                                   data-testid={`button-options-${conversation.id}`}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-[#2d2d2d] border-[#333333]">
+                              <DropdownMenuContent align="end" className="bg-popover border-popover-border">
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleStartRename(conversation);
                                   }}
-                                  className="text-white hover:bg-[#3d3d3d] cursor-pointer"
+                                  className="cursor-pointer"
                                   data-testid={`button-rename-${conversation.id}`}
                                 >
                                   <Pencil className="h-4 w-4 mr-2" />
@@ -248,7 +249,7 @@ export function ChatSidebar({
                                     e.stopPropagation();
                                     onDeleteConversation(conversation.id);
                                   }}
-                                  className="text-red-400 hover:bg-[#3d3d3d] hover:text-red-400 cursor-pointer"
+                                  className="text-destructive focus:text-destructive cursor-pointer"
                                   data-testid={`button-delete-${conversation.id}`}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -266,6 +267,8 @@ export function ChatSidebar({
             </div>
           )}
         </ScrollArea>
+
+        <UserMenu />
       </aside>
     </>
   );

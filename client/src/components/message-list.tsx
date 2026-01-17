@@ -154,20 +154,20 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
         const currentCodeIndex = codeBlockIndex++;
         return (
           <div key={index} className="relative my-3 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between bg-[#0d0d0d] px-4 py-2 text-xs text-[#999999]">
+            <div className="flex items-center justify-between bg-black/30 dark:bg-black/50 px-4 py-2 text-xs text-muted-foreground">
               <span>{part.language}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-[#999999] hover:text-white hover:bg-transparent"
+                className="h-6 px-2 text-muted-foreground hover:text-foreground hover:bg-transparent"
                 onClick={() => handleCopyCode(part.content, currentCodeIndex)}
                 data-testid={`button-copy-code-${currentCodeIndex}`}
               >
                 {copiedCodeIndex === currentCodeIndex ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               </Button>
             </div>
-            <pre className="bg-[#0d0d0d] px-4 py-3 overflow-x-auto">
-              <code className="text-sm font-mono text-[#e6e6e6]">{part.content}</code>
+            <pre className="bg-black/30 dark:bg-black/50 px-4 py-3 overflow-x-auto">
+              <code className="text-sm font-mono text-foreground">{part.content}</code>
             </pre>
           </div>
         );
@@ -192,8 +192,8 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
       data-testid={`message-${message.id}`}
     >
       {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00c9a7]">
-          <Bot className="h-4 w-4 text-white" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
+          <Bot className="h-4 w-4 text-primary-foreground" />
         </div>
       )}
 
@@ -201,15 +201,15 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
         className={`
           group relative max-w-[85%] rounded-2xl px-4 py-3
           ${isUser 
-            ? "bg-[#00c9a7] text-white" 
-            : "bg-[#2d2d2d] text-white"
+            ? "bg-primary text-primary-foreground" 
+            : "bg-card text-card-foreground"
           }
         `}
       >
         <div className="text-[15px] leading-relaxed">
           {renderContent(message.content)}
           {isStreaming && (
-            <span className="inline-block w-2 h-4 ml-1 bg-[#00c9a7] animate-pulse" />
+            <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
           )}
         </div>
 
@@ -218,7 +218,7 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-[#999999] hover:text-white hover:bg-transparent"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
               onClick={handleSpeak}
               disabled={isLoading}
               data-testid="button-speak-message"
@@ -234,7 +234,7 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-[#999999] hover:text-white hover:bg-transparent"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
               onClick={handleCopy}
               data-testid="button-copy-message"
             >
@@ -298,10 +298,10 @@ export function MessageList({ messages, streamingMessage, isStreaming, messagesE
 
         {isStreaming && !streamingMessage && (
           <div className="flex gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00c9a7]">
-              <Bot className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
+              <Bot className="h-4 w-4 text-primary-foreground" />
             </div>
-            <div className="bg-[#2d2d2d] rounded-2xl px-4 py-3">
+            <div className="bg-card rounded-2xl px-4 py-3">
               <TypingIndicator />
             </div>
           </div>

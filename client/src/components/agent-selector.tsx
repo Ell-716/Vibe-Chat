@@ -37,15 +37,15 @@ export function AgentSelector({ agents, selectedAgent, onSelectAgent, onOpenSett
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-9 gap-2 bg-transparent border-0 text-white hover:bg-[#333333] focus:ring-0 px-3"
+          className="h-9 gap-2 bg-transparent border-0 text-foreground hover:bg-accent focus:ring-0 px-3"
           data-testid="button-agent-selector"
         >
-          <SelectedIcon className="h-4 w-4 text-[#00c9a7]" />
+          <SelectedIcon className="h-4 w-4 text-primary" />
           <span className="hidden sm:inline">{selectedAgent?.name || "Select Agent"}</span>
-          <ChevronDown className="h-4 w-4 text-[#666666]" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 bg-[#2d2d2d] border-[#404040]">
+      <DropdownMenuContent align="end" className="w-72 bg-popover border-popover-border">
         {agents.map((agent) => {
           const Icon = getIcon(agent.icon);
           return (
@@ -54,26 +54,26 @@ export function AgentSelector({ agents, selectedAgent, onSelectAgent, onOpenSett
               onClick={() => onSelectAgent(agent)}
               className={`flex items-start gap-3 p-3 cursor-pointer ${
                 selectedAgent?.id === agent.id
-                  ? "bg-[#00c9a7]/10 text-white"
-                  : "text-white hover:bg-[#404040]"
+                  ? "bg-primary/10 text-foreground"
+                  : "text-foreground"
               }`}
               data-testid={`agent-option-${agent.id}`}
             >
-              <Icon className={`h-5 w-5 mt-0.5 ${selectedAgent?.id === agent.id ? "text-[#00c9a7]" : "text-[#999999]"}`} />
+              <Icon className={`h-5 w-5 mt-0.5 ${selectedAgent?.id === agent.id ? "text-primary" : "text-muted-foreground"}`} />
               <div className="flex-1 min-w-0">
                 <div className="font-medium">{agent.name}</div>
-                <div className="text-xs text-[#999999] truncate">{agent.description}</div>
+                <div className="text-xs text-muted-foreground truncate">{agent.description}</div>
               </div>
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuSeparator className="bg-[#404040]" />
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={onOpenSettings}
-          className="flex items-center gap-3 p-3 text-white hover:bg-[#404040] cursor-pointer"
+          className="flex items-center gap-3 p-3 cursor-pointer"
           data-testid="button-agent-settings"
         >
-          <Settings className="h-5 w-5 text-[#999999]" />
+          <Settings className="h-5 w-5 text-muted-foreground" />
           <span>Manage Agents</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -275,7 +275,7 @@ export default function ChatPage() {
   const isLoadingConversation = activeConversationId !== null && messagesLoading;
 
   return (
-    <div className="flex h-screen w-full bg-[#1a1a1a]">
+    <div className="flex h-screen w-full bg-background">
       <ChatSidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
@@ -294,7 +294,7 @@ export default function ChatPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-white hover:bg-[#333333]"
+            className="lg:hidden text-foreground hover:bg-accent"
             onClick={() => setSidebarOpen(true)}
             data-testid="button-sidebar-toggle"
           >
@@ -306,7 +306,7 @@ export default function ChatPage() {
           <div className="flex items-center gap-3">
             <ChannelStatus />
             
-            <div className="w-px h-6 bg-[#333333]" />
+            <div className="w-px h-6 bg-border" />
             
             <AgentSelector
               agents={agents}
@@ -318,7 +318,7 @@ export default function ChatPage() {
             <Button
               variant="ghost"
               size="icon"
-              className={`h-9 w-9 ${voiceResponseEnabled ? "text-[#00c9a7]" : "text-[#666666]"} hover:bg-[#333333]`}
+              className={`h-9 w-9 ${voiceResponseEnabled ? "text-primary" : "text-muted-foreground"} hover:bg-accent`}
               onClick={toggleVoiceResponse}
               title={voiceResponseEnabled ? "Voice responses enabled" : "Voice responses disabled"}
               data-testid="button-voice-toggle"
@@ -328,24 +328,23 @@ export default function ChatPage() {
             
             <Select value={selectedModel} onValueChange={setSelectedModel}>
               <SelectTrigger 
-                className="w-auto gap-2 bg-transparent border-0 text-white hover:bg-[#333333] focus:ring-0"
+                className="w-auto gap-2 bg-transparent border-0 text-foreground hover:bg-accent focus:ring-0"
                 data-testid="select-model"
               >
                 <SelectValue placeholder="Select model">
                   {models.find(m => m.id === selectedModel)?.name || "Select model"}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent className="bg-[#2d2d2d] border-[#404040]">
+              <SelectContent className="bg-popover border-popover-border">
                 {models.map((model) => (
                   <SelectItem 
                     key={model.id} 
                     value={model.id}
-                    className="text-white hover:bg-[#404040] focus:bg-[#404040] focus:text-white"
                     data-testid={`select-model-${model.id}`}
                   >
                     <span className="flex items-center gap-2">
                       <span>{model.name}</span>
-                      <span className="text-xs text-[#888888]">({model.provider})</span>
+                      <span className="text-xs text-muted-foreground">({model.provider})</span>
                     </span>
                   </SelectItem>
                 ))}
@@ -359,11 +358,11 @@ export default function ChatPage() {
             <div className="flex-1 px-4 md:px-6 py-6">
               <div className="mx-auto max-w-3xl space-y-6">
                 <div className="flex gap-3 justify-end">
-                  <Skeleton className="h-12 w-48 rounded-2xl bg-[#2d2d2d]" />
+                  <Skeleton className="h-12 w-48 rounded-2xl bg-muted" />
                 </div>
                 <div className="flex gap-3">
-                  <Skeleton className="h-8 w-8 rounded-full bg-[#2d2d2d]" />
-                  <Skeleton className="h-20 w-72 rounded-2xl bg-[#2d2d2d]" />
+                  <Skeleton className="h-8 w-8 rounded-full bg-muted" />
+                  <Skeleton className="h-20 w-72 rounded-2xl bg-muted" />
                 </div>
               </div>
             </div>

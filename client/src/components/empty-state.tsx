@@ -35,11 +35,11 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
       <div className="text-center mb-8">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#00c9a7]/20">
-          <Sparkles className="h-8 w-8 text-[#00c9a7]" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+          <Sparkles className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-semibold text-white mb-2">How can I help you today?</h2>
-        <p className="text-[#999999] max-w-md">
+        <h2 className="text-2xl font-semibold text-foreground mb-2">How can I help you today?</h2>
+        <p className="text-muted-foreground max-w-md">
           Start a conversation with me. I can help you write code, answer questions, brainstorm ideas, and much more.
         </p>
       </div>
@@ -51,14 +51,14 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
             <button
               key={index}
               onClick={() => onSuggestionClick(suggestion.prompt)}
-              className="group flex flex-col items-start gap-2 rounded-lg bg-[#2d2d2d] p-4 text-left transition-all duration-150 hover:bg-[#363636] hover:ring-1 hover:ring-[#00c9a7]/50"
+              className="group flex flex-col items-start gap-2 rounded-lg bg-card p-4 text-left transition-all duration-150 hover:bg-accent hover:ring-1 hover:ring-primary/50"
               data-testid={`suggestion-${index}`}
             >
               <div className="flex items-center gap-2">
-                <Icon className="h-5 w-5 text-[#00c9a7]" />
-                <span className="font-medium text-white">{suggestion.title}</span>
+                <Icon className="h-5 w-5 text-primary" />
+                <span className="font-medium text-foreground">{suggestion.title}</span>
               </div>
-              <span className="text-sm text-[#999999]">{suggestion.description}</span>
+              <span className="text-sm text-muted-foreground">{suggestion.description}</span>
             </button>
           );
         })}
