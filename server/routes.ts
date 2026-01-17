@@ -180,16 +180,20 @@ function buildOpenAITools(mcpTools?: MCPTool[]): ChatCompletionTool[] | undefine
       type: "function",
       function: {
         name: "google_sheets_get_spreadsheet",
-        description: "Get a Google Sheets spreadsheet by its ID to read its data",
+        description: "Get a Google Sheets spreadsheet to read its data. Returns the cell data from the spreadsheet.",
         parameters: {
           type: "object",
           properties: {
-            spreadsheet_id: {
+            spreadsheet_name: {
               type: "string",
-              description: "The Google Sheets spreadsheet ID",
+              description: "The name of the spreadsheet (e.g., 'Candidate_list', 'Jobs Posting Intake')",
+            },
+            what_data: {
+              type: "string",
+              description: "What data you want to see from the spreadsheet (e.g., 'all rows and columns', 'just the names and emails')",
             },
           },
-          required: ["spreadsheet_id"],
+          required: ["spreadsheet_name", "what_data"],
         },
       },
     });
@@ -197,20 +201,24 @@ function buildOpenAITools(mcpTools?: MCPTool[]): ChatCompletionTool[] | undefine
       type: "function",
       function: {
         name: "google_sheets_create_row",
-        description: "Add a new row to a Google Sheets spreadsheet",
+        description: "Add a new row to a Google Sheets spreadsheet with the specified column values",
         parameters: {
           type: "object",
           properties: {
-            spreadsheet_id: {
+            spreadsheet_name: {
               type: "string",
-              description: "The Google Sheets spreadsheet ID",
+              description: "The name of the spreadsheet (e.g., 'Candidate_list', 'Jobs Posting Intake')",
             },
-            values: {
-              type: "object",
-              description: "Key-value pairs of column names to values for the new row",
+            worksheet_name: {
+              type: "string",
+              description: "The name of the worksheet/tab within the spreadsheet (often the same as spreadsheet name, or 'Sheet1')",
+            },
+            row_data: {
+              type: "string",
+              description: "Description of the row data to add with column names and values (e.g., 'Name: John, Role: Developer, City: NYC')",
             },
           },
-          required: ["spreadsheet_id", "values"],
+          required: ["spreadsheet_name", "row_data"],
         },
       },
     });
@@ -222,20 +230,20 @@ function buildOpenAITools(mcpTools?: MCPTool[]): ChatCompletionTool[] | undefine
         parameters: {
           type: "object",
           properties: {
-            spreadsheet_id: {
+            spreadsheet_name: {
               type: "string",
-              description: "The Google Sheets spreadsheet ID",
+              description: "The name of the spreadsheet (e.g., 'Candidate_list', 'Jobs Posting Intake')",
             },
-            row_number: {
-              type: "number",
-              description: "The row number to update",
+            row_identifier: {
+              type: "string",
+              description: "How to identify the row to update (e.g., 'row 5', 'the row where Name is John')",
             },
-            values: {
-              type: "object",
-              description: "Key-value pairs of column names to updated values",
+            updated_data: {
+              type: "string",
+              description: "The updated column values (e.g., 'Role: Senior Developer, City: LA')",
             },
           },
-          required: ["spreadsheet_id", "row_number", "values"],
+          required: ["spreadsheet_name", "row_identifier", "updated_data"],
         },
       },
     });
@@ -269,25 +277,27 @@ async function handleToolCall(functionName: string, args: Record<string, any>): 
       case "google_sheets_get_spreadsheet":
         mcpToolName = "google_sheets_get_spreadsheet_by_id";
         mcpArgs = { 
-          instructions: `Get spreadsheet with ID: ${args.spreadsheet_id}`,
-          Spreadsheet: args.spreadsheet_id 
+          instructions: `Get the spreadsheet named "${args.spreadsheet_name}" and return its data`,
+          spreadsheet: args.spreadsheet_name,
+          includeGridData: "true",
+          output_hint: args.what_data || "all data including all rows and columns"
         };
         break;
       case "google_sheets_create_row":
         mcpToolName = "google_sheets_create_spreadsheet_row";
         mcpArgs = { 
-          instructions: `Add a new row to spreadsheet ${args.spreadsheet_id}`,
-          Spreadsheet: args.spreadsheet_id, 
-          ...args.values 
+          instructions: `Add a new row to the "${args.spreadsheet_name}" spreadsheet${args.worksheet_name ? ` in worksheet "${args.worksheet_name}"` : ''}. The row data: ${args.row_data}`,
+          spreadsheet: args.spreadsheet_name,
+          worksheet: args.worksheet_name || args.spreadsheet_name,
+          output_hint: "confirmation that the row was added successfully"
         };
         break;
       case "google_sheets_update_row":
-        mcpToolName = "google_sheets_update_spreadsheet_row_s_";
+        mcpToolName = "google_sheets_update_spreadsheet_row_s";
         mcpArgs = { 
-          instructions: `Update row ${args.row_number} in spreadsheet ${args.spreadsheet_id}`,
-          Spreadsheet: args.spreadsheet_id, 
-          Row: args.row_number, 
-          ...args.values 
+          instructions: `Update ${args.row_identifier} in the "${args.spreadsheet_name}" spreadsheet with: ${args.updated_data}`,
+          spreadsheet: args.spreadsheet_name,
+          output_hint: "confirmation that the row was updated successfully"
         };
         break;
       default:
