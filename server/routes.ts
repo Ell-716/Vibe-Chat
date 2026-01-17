@@ -593,5 +593,41 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/speech-to-text", async (req, res) => {
+    try {
+      if (!process.env.ELEVENLABS_API_KEY) {
+        return res.status(500).json({ error: "ElevenLabs API key not configured" });
+      }
+
+      const chunks: Buffer[] = [];
+      req.on("data", (chunk: Buffer) => chunks.push(chunk));
+      req.on("end", async () => {
+        try {
+          const audioBuffer = Buffer.concat(chunks);
+          
+          if (audioBuffer.length === 0) {
+            return res.status(400).json({ error: "No audio data received" });
+          }
+
+          const audioBlob = new Blob([audioBuffer], { type: "audio/webm" });
+
+          const transcription = await elevenlabs.speechToText.convert({
+            file: audioBlob,
+            modelId: "scribe_v1",
+          });
+
+          const result = transcription as { text?: string };
+          res.json({ text: result.text || "" });
+        } catch (error) {
+          console.error("Error transcribing audio:", error);
+          res.status(500).json({ error: "Failed to transcribe audio" });
+        }
+      });
+    } catch (error) {
+      console.error("Error in speech-to-text:", error);
+      res.status(500).json({ error: "Failed to process audio" });
+    }
+  });
+
   return httpServer;
 }

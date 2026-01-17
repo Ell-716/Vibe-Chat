@@ -1,5 +1,5 @@
-import { useState, KeyboardEvent } from "react";
-import { Send, Plus, FileSpreadsheet, FolderOpen, X } from "lucide-react";
+import { useState, useRef, KeyboardEvent } from "react";
+import { Send, Plus, FileSpreadsheet, FolderOpen, X, Mic, Loader2, Square } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -16,6 +16,10 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [mcpToolsOpen, setMcpToolsOpen] = useState(false);
   const [selectedTools, setSelectedTools] = useState<MCPTool[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const handleSend = () => {
     if (message.trim() && !isStreaming) {
@@ -48,6 +52,69 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
 
   const handleRemoveTool = (toolId: string) => {
     setSelectedTools(selectedTools.filter(t => t.id !== toolId));
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        
+        if (audioChunksRef.current.length === 0) return;
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        setIsTranscribing(true);
+        
+        try {
+          const response = await fetch("/api/speech-to-text", {
+            method: "POST",
+            body: audioBlob,
+            headers: { "Content-Type": "audio/webm" },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.text) {
+              setMessage((prev) => prev + (prev ? " " : "") + data.text);
+            }
+          }
+        } catch (error) {
+          console.error("Error transcribing:", error);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   };
 
   return (
@@ -129,11 +196,34 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Start vibing..."
+            placeholder={isRecording ? "Listening..." : "Start vibing..."}
             className="flex-1 bg-transparent text-base text-white placeholder:text-base placeholder:text-[#999999] focus:outline-none border-0"
-            disabled={isStreaming}
+            disabled={isStreaming || isRecording}
             data-testid="input-message"
           />
+          <button
+            type="button"
+            onClick={handleMicClick}
+            disabled={isStreaming || isTranscribing}
+            className={`
+              shrink-0 p-1 transition-colors
+              ${isRecording 
+                ? "text-red-500 hover:text-red-400 animate-pulse" 
+                : isTranscribing
+                  ? "text-[#00c9a7]"
+                  : "text-[#999999] hover:text-[#00c9a7]"
+              }
+            `}
+            data-testid="button-mic"
+          >
+            {isTranscribing ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : isRecording ? (
+              <Square className="h-5 w-5" />
+            ) : (
+              <Mic className="h-5 w-5" />
+            )}
+          </button>
           <button
             type="button"
             onClick={handleSend}
