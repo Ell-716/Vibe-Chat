@@ -2,7 +2,7 @@
 
 ## Overview
 
-A modern AI chat application built with React frontend and Express backend. The application provides a conversational interface where users can chat with an AI assistant, manage multiple conversations, and receive streamed responses. The design follows modern AI chat interfaces (ChatGPT, Claude style) with a dark theme featuring aquamarine accents.
+A modern AI chat application built with React frontend and Express backend. The application provides a conversational interface where users can chat with an AI assistant, manage multiple conversations, and receive streamed responses. The design follows modern AI chat interfaces (ChatGPT, Claude style) with support for both dark and light themes featuring aquamarine (#00c9a7) accent colors.
 
 ## User Preferences
 
@@ -23,6 +23,17 @@ The frontend follows a component-based architecture with:
 - Reusable UI components in `client/src/components/ui/`
 - Feature components in `client/src/components/`
 - Custom hooks in `client/src/hooks/`
+
+### Theme System
+- **Light/Dark Mode**: Full support for both themes with seamless switching
+- **ThemeProvider**: React context in `client/src/components/theme-provider.tsx` manages theme state
+- **Persistence**: Theme preference saved to localStorage and restored on page load
+- **Toggle**: Theme toggle available in UserMenu dropdown at bottom of sidebar
+- **Implementation**: Toggles "dark" class on document root, CSS variables defined in `index.css`
+- **Colors**: All components use theme-aware Tailwind CSS variables (text-foreground, bg-background, etc.)
+- **Dark Mode**: #1a1a1a background, #252525 sidebar
+- **Light Mode**: White background, light grey sidebar
+- **Primary Accent**: Aquamarine #00c9a7 (consistent in both themes)
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
