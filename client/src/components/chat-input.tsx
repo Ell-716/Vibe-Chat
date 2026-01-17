@@ -5,6 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useToast } from "@/hooks/use-toast";
 import type { MCPTool } from "@shared/schema";
 
 interface ChatInputProps {
@@ -20,6 +21,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
 
   const handleSend = () => {
     if (message.trim() && !isStreaming) {
@@ -70,7 +72,14 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
         
-        if (audioChunksRef.current.length === 0) return;
+        if (audioChunksRef.current.length === 0) {
+          toast({
+            title: "No audio recorded",
+            description: "Please try recording again",
+            variant: "destructive",
+          });
+          return;
+        }
         
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         setIsTranscribing(true);
@@ -86,10 +95,28 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
             const data = await response.json();
             if (data.text) {
               setMessage((prev) => prev + (prev ? " " : "") + data.text);
+            } else {
+              toast({
+                title: "No speech detected",
+                description: "Please try speaking more clearly",
+                variant: "destructive",
+              });
             }
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            toast({
+              title: "Transcription failed",
+              description: errorData.error || "Could not transcribe audio",
+              variant: "destructive",
+            });
           }
         } catch (error) {
           console.error("Error transcribing:", error);
+          toast({
+            title: "Connection error",
+            description: "Could not connect to transcription service",
+            variant: "destructive",
+          });
         } finally {
           setIsTranscribing(false);
         }
@@ -99,6 +126,11 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
       setIsRecording(true);
     } catch (error) {
       console.error("Error accessing microphone:", error);
+      toast({
+        title: "Microphone access denied",
+        description: "Please allow microphone access in your browser settings",
+        variant: "destructive",
+      });
     }
   };
 
