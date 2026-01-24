@@ -48,7 +48,7 @@ export async function sendTicketCreatedEmail(
   try {
     const { client, fromEmail } = await getResendClient();
     
-    await client.emails.send({
+    const result = await client.emails.send({
       from: fromEmail,
       to: customerEmail,
       subject: `Support Ticket Created: ${subject}`,
@@ -69,7 +69,7 @@ export async function sendTicketCreatedEmail(
       `,
     });
     
-    console.log(`Ticket created email sent to ${customerEmail}`);
+    console.log(`Ticket created email sent to ${customerEmail} from ${fromEmail}`, JSON.stringify(result));
     return true;
   } catch (error) {
     console.error('Failed to send ticket created email:', error);
@@ -88,7 +88,7 @@ export async function sendAgentResponseEmail(
   try {
     const { client, fromEmail } = await getResendClient();
     
-    await client.emails.send({
+    const result = await client.emails.send({
       from: fromEmail,
       to: customerEmail,
       subject: `Re: ${subject} - Support Update`,
@@ -110,7 +110,7 @@ export async function sendAgentResponseEmail(
       `,
     });
     
-    console.log(`Agent response email sent to ${customerEmail}`);
+    console.log(`Agent response email sent to ${customerEmail} from ${fromEmail}`, JSON.stringify(result));
     return true;
   } catch (error) {
     console.error('Failed to send agent response email:', error);
