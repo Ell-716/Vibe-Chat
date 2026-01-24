@@ -19,8 +19,6 @@ async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
   }
 
   try {
-    console.log('Sending email with private key:', privateKey ? 'present' : 'missing');
-    
     const response = await fetch(EMAILJS_API_URL, {
       method: 'POST',
       headers: {
