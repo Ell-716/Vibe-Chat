@@ -1,41 +1,49 @@
-import { Resend } from 'resend';
+const EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
-let connectionSettings: any;
-
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
-  }
-
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || (!connectionSettings.settings.api_key)) {
-    throw new Error('Resend not connected');
-  }
-  return { apiKey: connectionSettings.settings.api_key, fromEmail: connectionSettings.settings.from_email };
+interface EmailJSParams {
+  to_email: string;
+  to_name: string;
+  ticket_id: string;
+  subject: string;
+  message: string;
+  agent_name?: string;
 }
 
-async function getResendClient() {
-  const { apiKey, fromEmail } = await getCredentials();
-  return {
-    client: new Resend(apiKey),
-    fromEmail
-  };
+async function sendEmailJS(templateId: string, params: EmailJSParams): Promise<boolean> {
+  const serviceId = process.env.EMAILJS_SERVICE_ID;
+  const publicKey = process.env.EMAILJS_PUBLIC_KEY;
+
+  if (!serviceId || !publicKey) {
+    console.log('EmailJS not configured - skipping email notification');
+    return false;
+  }
+
+  try {
+    const response = await fetch(EMAILJS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        template_params: params,
+      }),
+    });
+
+    if (response.ok) {
+      console.log(`Email sent successfully via EmailJS to ${params.to_email}`);
+      return true;
+    } else {
+      const errorText = await response.text();
+      console.error('EmailJS error:', errorText);
+      return false;
+    }
+  } catch (error) {
+    console.error('Failed to send email via EmailJS:', error);
+    return false;
+  }
 }
 
 export async function sendTicketCreatedEmail(
@@ -45,36 +53,20 @@ export async function sendTicketCreatedEmail(
   subject: string,
   description: string
 ): Promise<boolean> {
-  try {
-    const { client, fromEmail } = await getResendClient();
-    
-    const result = await client.emails.send({
-      from: fromEmail,
-      to: customerEmail,
-      subject: `Support Ticket Created: ${subject}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #00c9a7;">Support Ticket Received</h2>
-          <p>Hello ${customerName},</p>
-          <p>Thank you for contacting our support team. We have received your request and will get back to you as soon as possible.</p>
-          <div style="background-color: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-            <p style="margin: 0 0 8px 0;"><strong>Ticket ID:</strong> ${ticketId}</p>
-            <p style="margin: 0 0 8px 0;"><strong>Subject:</strong> ${subject}</p>
-            <p style="margin: 0;"><strong>Your message:</strong></p>
-            <p style="margin: 8px 0 0 0; color: #666;">${description}</p>
-          </div>
-          <p>Our team is reviewing your request and will respond shortly.</p>
-          <p style="color: #888; font-size: 12px; margin-top: 24px;">This is an automated message from Vibe Chat Support.</p>
-        </div>
-      `,
-    });
-    
-    console.log(`Ticket created email sent to ${customerEmail} from ${fromEmail}`, JSON.stringify(result));
-    return true;
-  } catch (error) {
-    console.error('Failed to send ticket created email:', error);
+  const templateId = process.env.EMAILJS_TICKET_TEMPLATE_ID;
+  
+  if (!templateId) {
+    console.log('EMAILJS_TICKET_TEMPLATE_ID not configured - skipping ticket created email');
     return false;
   }
+
+  return sendEmailJS(templateId, {
+    to_email: customerEmail,
+    to_name: customerName,
+    ticket_id: ticketId,
+    subject: subject,
+    message: description,
+  });
 }
 
 export async function sendAgentResponseEmail(
@@ -85,35 +77,19 @@ export async function sendAgentResponseEmail(
   agentName: string,
   responseContent: string
 ): Promise<boolean> {
-  try {
-    const { client, fromEmail } = await getResendClient();
-    
-    const result = await client.emails.send({
-      from: fromEmail,
-      to: customerEmail,
-      subject: `Re: ${subject} - Support Update`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #00c9a7;">Support Team Response</h2>
-          <p>Hello ${customerName},</p>
-          <p>Our support team has responded to your ticket.</p>
-          <div style="background-color: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-            <p style="margin: 0 0 8px 0;"><strong>Ticket ID:</strong> ${ticketId}</p>
-            <p style="margin: 0 0 8px 0;"><strong>Subject:</strong> ${subject}</p>
-            <p style="margin: 0 0 8px 0;"><strong>Response from:</strong> ${agentName}</p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 12px 0;" />
-            <div style="white-space: pre-wrap;">${responseContent}</div>
-          </div>
-          <p>If you need further assistance, please reply to this ticket through our support portal.</p>
-          <p style="color: #888; font-size: 12px; margin-top: 24px;">This is an automated message from Vibe Chat Support.</p>
-        </div>
-      `,
-    });
-    
-    console.log(`Agent response email sent to ${customerEmail} from ${fromEmail}`, JSON.stringify(result));
-    return true;
-  } catch (error) {
-    console.error('Failed to send agent response email:', error);
+  const templateId = process.env.EMAILJS_RESPONSE_TEMPLATE_ID;
+  
+  if (!templateId) {
+    console.log('EMAILJS_RESPONSE_TEMPLATE_ID not configured - skipping agent response email');
     return false;
   }
+
+  return sendEmailJS(templateId, {
+    to_email: customerEmail,
+    to_name: customerName,
+    ticket_id: ticketId,
+    subject: subject,
+    message: responseContent,
+    agent_name: agentName,
+  });
 }
