@@ -19,10 +19,13 @@ async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
   }
 
   try {
+    console.log('Sending email with private key:', privateKey ? 'present' : 'missing');
+    
     const response = await fetch(EMAILJS_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'origin': 'https://replit.com',
       },
       body: JSON.stringify({
         service_id: serviceId,
