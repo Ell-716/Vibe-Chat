@@ -193,9 +193,6 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
               className="w-64 bg-popover border-popover-border p-0"
             >
               <div className="p-2">
-                <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  MCP Tools
-                </p>
                 <button
                   type="button"
                   onClick={() => handleSelectTool({ name: 'Google Drive', type: 'drive' })}
