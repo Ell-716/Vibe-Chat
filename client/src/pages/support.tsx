@@ -306,7 +306,6 @@ function CreateTicketDialog({ onClose }: { onClose: () => void }) {
       queryClient.invalidateQueries({ queryKey: ["/api/support/stats"] });
       toast({
         title: "Ticket created",
-        description: `Ticket routed to ${result.assignedAgent?.name || "queue"}. AI suggested: ${result.analysis?.category} / ${result.analysis?.priority}`,
       });
       onClose();
     },
