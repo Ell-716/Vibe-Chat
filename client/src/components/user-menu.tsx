@@ -1,4 +1,5 @@
-import { User, LogOut, Settings, HelpCircle } from "lucide-react";
+import { Link } from "wouter";
+import { User, LogOut, Settings, HelpCircle, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +17,7 @@ export function UserMenu() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="flex items-center gap-3 w-full justify-start px-2 py-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent"
+            className="flex items-center gap-3 flex-1 justify-start px-2 py-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent"
             data-testid="button-user-menu"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -37,6 +38,15 @@ export function UserMenu() {
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </DropdownMenuItem>
+          <Link href="/support">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              data-testid="menu-item-support"
+            >
+              <Headphones className="h-4 w-4 mr-2" />
+              Support
+            </DropdownMenuItem>
+          </Link>
           <DropdownMenuItem
             className="cursor-pointer"
             data-testid="menu-item-help"

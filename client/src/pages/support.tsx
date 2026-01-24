@@ -32,8 +32,10 @@ import {
   MessageSquare,
   RefreshCw,
   User,
-  Mail
+  Mail,
+  Sparkles
 } from "lucide-react";
+import { Link } from "wouter";
 import type { SupportTicket, SupportAgent, TicketCategory, TicketPriority, TicketStatus } from "@shared/schema";
 import TicketDetail from "@/components/ticket-detail";
 
@@ -116,6 +118,18 @@ export default function SupportPage() {
   return (
     <div className="flex h-full">
       <div className={`flex-1 p-6 overflow-auto ${selectedTicket ? 'hidden md:block md:w-1/2 lg:w-2/5' : ''}`}>
+        <Link href="/">
+          <button
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity mb-6"
+            data-testid="button-back-to-chat"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#00a896]">
+              <Sparkles className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold text-foreground">Vibe Chat</span>
+          </button>
+        </Link>
+
         <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
           <h1 className="text-2xl font-bold">Support Dashboard</h1>
           <div className="flex gap-2">
@@ -265,7 +279,7 @@ export default function SupportPage() {
             ticket={selectedTicket} 
             agents={agents}
             onClose={() => setSelectedTicket(null)}
-            onUpdate={(updated) => setSelectedTicket(updated)}
+            onUpdate={(updated: SupportTicket) => setSelectedTicket(updated)}
           />
         </div>
       )}
