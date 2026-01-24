@@ -93,13 +93,14 @@ Key backend patterns:
 
 ### Support Workflow Automation
 - **Purpose**: Automated ticket routing and escalation with intelligent support agent coordination
-- **Location**: `server/support-routes.ts`, `server/support-ai.ts`
+- **Location**: `server/support-routes.ts`, `server/support-ai.ts`, `server/email-service.ts`
 - **Features**:
   - AI-powered ticket analysis (category, priority, summary, suggested response)
   - Intelligent agent routing based on skills and workload
   - Automatic escalation rules with SLA tracking
   - Support agent management with availability and skill tracking
   - AI-generated response suggestions
+  - Email notifications via Resend (ticket created, agent responses)
 - **Data Models** (in `shared/schema.ts`):
   - `SupportTicket`: Tickets with category, priority, status, AI suggestions
   - `TicketMessage`: Conversation messages on tickets

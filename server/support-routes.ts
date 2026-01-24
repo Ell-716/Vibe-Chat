@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { analyzeTicket, routeTicket, generateSupportResponse, checkEscalations } from "./support-ai";
+import { sendTicketCreatedEmail, sendAgentResponseEmail } from "./email-service";
 import type { TicketStatus, TicketCategory, TicketPriority } from "@shared/schema";
 
 export function registerSupportRoutes(app: Express): void {
@@ -86,6 +87,14 @@ export function registerSupportRoutes(app: Express): void {
 
       const updatedTicket = await storage.getTicket(ticket.id);
 
+      sendTicketCreatedEmail(
+        customerEmail,
+        customerName,
+        ticket.id,
+        subject,
+        description
+      ).catch(err => console.error("Email notification failed:", err));
+
       res.status(201).json({
         ticket: updatedTicket,
         analysis,
@@ -163,6 +172,23 @@ export function registerSupportRoutes(app: Express): void {
           firstResponseAt: new Date(),
           status: "in_progress"
         });
+      }
+
+      if (senderType === "agent" && !isInternal) {
+        let agentName = "Support Agent";
+        if (ticket.assignedAgentId) {
+          const agent = await storage.getSupportAgent(ticket.assignedAgentId);
+          if (agent) agentName = agent.name;
+        }
+        
+        sendAgentResponseEmail(
+          ticket.customerEmail,
+          ticket.customerName,
+          ticket.id,
+          ticket.subject,
+          agentName,
+          content
+        ).catch(err => console.error("Agent response email failed:", err));
       }
 
       res.status(201).json(message);
