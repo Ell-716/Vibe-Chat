@@ -3,17 +3,16 @@ const EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 interface EmailJSParams {
   to_email: string;
   to_name: string;
-  ticket_id: string;
   subject: string;
   message: string;
-  agent_name?: string;
 }
 
-async function sendEmailJS(templateId: string, params: EmailJSParams): Promise<boolean> {
+async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
   const serviceId = process.env.EMAILJS_SERVICE_ID;
+  const templateId = process.env.EMAILJS_TEMPLATE_ID;
   const publicKey = process.env.EMAILJS_PUBLIC_KEY;
 
-  if (!serviceId || !publicKey) {
+  if (!serviceId || !templateId || !publicKey) {
     console.log('EmailJS not configured - skipping email notification');
     return false;
   }
@@ -53,19 +52,11 @@ export async function sendTicketCreatedEmail(
   subject: string,
   description: string
 ): Promise<boolean> {
-  const templateId = process.env.EMAILJS_TICKET_TEMPLATE_ID;
-  
-  if (!templateId) {
-    console.log('EMAILJS_TICKET_TEMPLATE_ID not configured - skipping ticket created email');
-    return false;
-  }
-
-  return sendEmailJS(templateId, {
+  return sendEmailJS({
     to_email: customerEmail,
     to_name: customerName,
-    ticket_id: ticketId,
-    subject: subject,
-    message: description,
+    subject: `Support Ticket Created: ${subject}`,
+    message: `Hello ${customerName},\n\nThank you for contacting support. We have received your request.\n\nTicket ID: ${ticketId}\nSubject: ${subject}\n\nYour message:\n${description}\n\nOur team will respond shortly.\n\n- Vibe Chat Support`,
   });
 }
 
@@ -77,19 +68,10 @@ export async function sendAgentResponseEmail(
   agentName: string,
   responseContent: string
 ): Promise<boolean> {
-  const templateId = process.env.EMAILJS_RESPONSE_TEMPLATE_ID;
-  
-  if (!templateId) {
-    console.log('EMAILJS_RESPONSE_TEMPLATE_ID not configured - skipping agent response email');
-    return false;
-  }
-
-  return sendEmailJS(templateId, {
+  return sendEmailJS({
     to_email: customerEmail,
     to_name: customerName,
-    ticket_id: ticketId,
-    subject: subject,
-    message: responseContent,
-    agent_name: agentName,
+    subject: `Re: ${subject} - Support Update`,
+    message: `Hello ${customerName},\n\nOur support team has responded to your ticket.\n\nTicket ID: ${ticketId}\nResponse from: ${agentName}\n\n${responseContent}\n\nIf you need further assistance, please reply through our support portal.\n\n- Vibe Chat Support`,
   });
 }
