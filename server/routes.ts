@@ -6,6 +6,7 @@ import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
 import { getDiscordBotStatus } from "./discord-bot";
+import { registerSupportRoutes } from "./support-routes";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -723,6 +724,8 @@ export async function registerRoutes(
       web: { connected: true },
     });
   });
+
+  registerSupportRoutes(app);
 
   return httpServer;
 }

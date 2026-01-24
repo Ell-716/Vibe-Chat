@@ -101,3 +101,167 @@ export const defaultAgents: Agent[] = [
     icon: "graduation-cap",
   },
 ];
+
+export type TicketPriority = "low" | "medium" | "high" | "urgent";
+export type TicketStatus = "open" | "in_progress" | "pending_customer" | "escalated" | "resolved" | "closed";
+export type TicketCategory = "billing" | "technical" | "account" | "feature_request" | "bug_report" | "general";
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  customerId: string;
+  customerEmail: string;
+  customerName: string;
+  assignedAgentId: string | null;
+  aiSuggestedCategory: TicketCategory | null;
+  aiSuggestedPriority: TicketPriority | null;
+  aiSummary: string | null;
+  aiSuggestedResponse: string | null;
+  escalationReason: string | null;
+  escalationLevel: number;
+  slaDeadline: Date | null;
+  firstResponseAt: Date | null;
+  resolvedAt: Date | null;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderType: "customer" | "agent" | "system";
+  content: string;
+  isInternal: boolean;
+  createdAt: Date;
+}
+
+export interface SupportAgent {
+  id: string;
+  name: string;
+  email: string;
+  skills: TicketCategory[];
+  maxTickets: number;
+  currentTicketCount: number;
+  isAvailable: boolean;
+  isOnline: boolean;
+  averageResponseTime: number;
+  satisfactionScore: number;
+  createdAt: Date;
+}
+
+export interface EscalationRule {
+  id: string;
+  name: string;
+  priority: TicketPriority;
+  category: TicketCategory | null;
+  triggerAfterMinutes: number;
+  escalateToLevel: number;
+  notifyManagement: boolean;
+  isActive: boolean;
+}
+
+export interface InsertSupportTicket {
+  subject: string;
+  description: string;
+  customerId: string;
+  customerEmail: string;
+  customerName: string;
+  category?: TicketCategory;
+  priority?: TicketPriority;
+}
+
+export interface InsertTicketMessage {
+  ticketId: string;
+  senderId: string;
+  senderType: "customer" | "agent" | "system";
+  content: string;
+  isInternal?: boolean;
+}
+
+export interface InsertSupportAgent {
+  name: string;
+  email: string;
+  skills: TicketCategory[];
+  maxTickets?: number;
+}
+
+export const defaultSupportAgents: SupportAgent[] = [
+  {
+    id: "agent-1",
+    name: "Sarah Johnson",
+    email: "sarah@support.com",
+    skills: ["billing", "account", "general"],
+    maxTickets: 10,
+    currentTicketCount: 3,
+    isAvailable: true,
+    isOnline: true,
+    averageResponseTime: 15,
+    satisfactionScore: 4.8,
+    createdAt: new Date(),
+  },
+  {
+    id: "agent-2",
+    name: "Mike Chen",
+    email: "mike@support.com",
+    skills: ["technical", "bug_report", "feature_request"],
+    maxTickets: 8,
+    currentTicketCount: 5,
+    isAvailable: true,
+    isOnline: true,
+    averageResponseTime: 20,
+    satisfactionScore: 4.6,
+    createdAt: new Date(),
+  },
+  {
+    id: "agent-3",
+    name: "Emily Davis",
+    email: "emily@support.com",
+    skills: ["billing", "technical", "account"],
+    maxTickets: 12,
+    currentTicketCount: 8,
+    isAvailable: true,
+    isOnline: false,
+    averageResponseTime: 12,
+    satisfactionScore: 4.9,
+    createdAt: new Date(),
+  },
+];
+
+export const defaultEscalationRules: EscalationRule[] = [
+  {
+    id: "rule-1",
+    name: "Urgent tickets auto-escalate",
+    priority: "urgent",
+    category: null,
+    triggerAfterMinutes: 15,
+    escalateToLevel: 2,
+    notifyManagement: true,
+    isActive: true,
+  },
+  {
+    id: "rule-2",
+    name: "High priority billing issues",
+    priority: "high",
+    category: "billing",
+    triggerAfterMinutes: 30,
+    escalateToLevel: 1,
+    notifyManagement: false,
+    isActive: true,
+  },
+  {
+    id: "rule-3",
+    name: "Unresponded technical tickets",
+    priority: "medium",
+    category: "technical",
+    triggerAfterMinutes: 60,
+    escalateToLevel: 1,
+    notifyManagement: false,
+    isActive: true,
+  },
+];

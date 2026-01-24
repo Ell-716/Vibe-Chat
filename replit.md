@@ -91,6 +91,30 @@ Key backend patterns:
 - **Status Endpoint**: `/api/channels/status` returns connection status for all channels
 - **UI Component**: `ChannelStatus` in header shows Discord bot connection status
 
+### Support Workflow Automation
+- **Purpose**: Automated ticket routing and escalation with intelligent support agent coordination
+- **Location**: `server/support-routes.ts`, `server/support-ai.ts`
+- **Features**:
+  - AI-powered ticket analysis (category, priority, summary, suggested response)
+  - Intelligent agent routing based on skills and workload
+  - Automatic escalation rules with SLA tracking
+  - Support agent management with availability and skill tracking
+  - AI-generated response suggestions
+- **Data Models** (in `shared/schema.ts`):
+  - `SupportTicket`: Tickets with category, priority, status, AI suggestions
+  - `TicketMessage`: Conversation messages on tickets
+  - `SupportAgent`: Agents with skills, capacity, and performance metrics
+  - `EscalationRule`: Rules for automatic ticket escalation
+- **API Endpoints**:
+  - `/api/support/tickets` - Full CRUD for tickets
+  - `/api/support/tickets/:id/messages` - Ticket conversation
+  - `/api/support/tickets/:id/generate-response` - AI response generation
+  - `/api/support/tickets/:id/escalate` - Manual escalation
+  - `/api/support/agents` - Agent management
+  - `/api/support/stats` - Dashboard statistics
+  - `/api/support/check-escalations` - Run escalation checks
+- **Frontend**: Support dashboard at `/support` with ticket list, detail view, and agent management
+
 ### Replit Integration Modules
 Located in `server/replit_integrations/`:
 - **chat/**: Text-based conversation handling with streaming
