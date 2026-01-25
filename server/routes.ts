@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
@@ -18,11 +20,17 @@ const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || "");
+
 const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
 });
 
-type AIModel = "gpt-4o-mini" | "groq-llama";
+type AIModel = "gpt-4o-mini" | "groq-llama" | "claude-sonnet" | "gemini-flash";
 
 const ZAPIER_MCP_URL = process.env.ZAPIER_MCP_URL;
 const ZAPIER_MCP_API_KEY = process.env.ZAPIER_MCP_API_KEY;
@@ -428,6 +436,8 @@ export async function registerRoutes(
     const models = [
       { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
       { id: "groq-llama", name: "Llama 3", provider: "Groq" },
+      { id: "claude-sonnet", name: "Claude Sonnet", provider: "Anthropic" },
+      { id: "gemini-flash", name: "Gemini Flash", provider: "Google" },
     ];
     res.json(models);
   });
@@ -546,6 +556,40 @@ export async function registerRoutes(
         });
 
         const textContent = response.choices[0]?.message?.content || "";
+        fullResponse = textContent;
+        res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
+      } else if (model === "claude-sonnet") {
+        const claudeMessages = messages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
+
+        const response = await anthropic.messages.create({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2048,
+          system: systemPrompt,
+          messages: claudeMessages,
+        });
+
+        const textContent = response.content[0]?.type === "text" ? response.content[0].text : "";
+        fullResponse = textContent;
+        res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
+      } else if (model === "gemini-flash") {
+        const geminiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        
+        const chatHistory = messages.slice(0, -1).map((m) => ({
+          role: m.role === "user" ? "user" : "model",
+          parts: [{ text: m.content }],
+        }));
+
+        const chat = geminiModel.startChat({
+          history: chatHistory as any,
+          systemInstruction: systemPrompt,
+        });
+
+        const lastMessage = messages[messages.length - 1];
+        const result = await chat.sendMessage(lastMessage?.content || "");
+        const textContent = result.response.text();
         fullResponse = textContent;
         res.write(`data: ${JSON.stringify({ content: textContent })}\n\n`);
       } else {
