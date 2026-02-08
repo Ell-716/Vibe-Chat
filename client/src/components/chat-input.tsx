@@ -44,7 +44,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== "application/pdf") {
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
       toast({ title: "Only PDF files are supported", variant: "destructive" });
       return;
     }
