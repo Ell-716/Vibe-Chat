@@ -9,6 +9,8 @@ import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
 import { getDiscordBotStatus } from "./discord-bot";
 import { registerSupportRoutes } from "./support-routes";
+import { processDocument, retrieveContext, getDocuments, deleteDocument, hasDocuments } from "./rag-service";
+import multer from "multer";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -322,7 +324,7 @@ async function handleToolCall(functionName: string, args: Record<string, any>): 
   }
 }
 
-function buildSystemPrompt(agentPrompt?: string, mcpTools?: MCPTool[]): string {
+function buildSystemPrompt(agentPrompt?: string, mcpTools?: MCPTool[], ragContext?: string): string {
   let prompt = agentPrompt || "You are a helpful AI assistant called Vibe Chat. Be concise, clear, and helpful. When writing code, use markdown code blocks with the appropriate language identifier.";
   
   if (mcpTools && mcpTools.length > 0) {
@@ -334,6 +336,10 @@ function buildSystemPrompt(agentPrompt?: string, mcpTools?: MCPTool[]): string {
       prompt += "\n- Google Sheets: You can read spreadsheets, add rows, and update data. Use the tools provided when the user asks about their spreadsheets.";
     }
     prompt += "\n\nWhen the user asks about files or spreadsheets, USE THE TOOLS to actually look them up - don't just tell them how to find things themselves.";
+  }
+
+  if (ragContext) {
+    prompt += "\n\n--- DOCUMENT CONTEXT ---\nThe following information was retrieved from uploaded documents. Use it to answer the user's question accurately. If the context doesn't contain relevant information, say so.\n\n" + ragContext + "\n--- END DOCUMENT CONTEXT ---";
   }
   
   return prompt;
@@ -442,6 +448,38 @@ export async function registerRoutes(
     res.json(models);
   });
 
+  // RAG document endpoints
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+
+  app.post("/api/documents/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      if (req.file.mimetype !== "application/pdf") {
+        return res.status(400).json({ error: "Only PDF files are supported" });
+      }
+      const doc = await processDocument(req.file.buffer, req.file.originalname);
+      res.json(doc);
+    } catch (error) {
+      console.error("Document upload error:", error);
+      res.status(500).json({ error: "Failed to process document" });
+    }
+  });
+
+  app.get("/api/documents", (req, res) => {
+    res.json(getDocuments());
+  });
+
+  app.delete("/api/documents/:id", (req, res) => {
+    const deleted = deleteDocument(req.params.id);
+    if (deleted) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: "Document not found" });
+    }
+  });
+
   // Agent management endpoints
   app.get("/api/agents", async (req, res) => {
     try {
@@ -530,7 +568,12 @@ export async function registerRoutes(
         }
       }
       
-      const systemPrompt = buildSystemPrompt(agentPrompt, mcpTools as MCPTool[] | undefined);
+      let ragContext = "";
+      if (hasDocuments()) {
+        ragContext = await retrieveContext(content);
+      }
+
+      const systemPrompt = buildSystemPrompt(agentPrompt, mcpTools as MCPTool[] | undefined, ragContext);
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");

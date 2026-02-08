@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
+import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, Sparkles, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserMenu } from "@/components/user-menu";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 
 interface ChatSidebarProps {
@@ -41,6 +43,18 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [docsExpanded, setDocsExpanded] = useState(false);
+
+  const { data: documents = [] } = useQuery<{ id: string; name: string; totalPages: number; chunkCount: number; uploadedAt: string }[]>({
+    queryKey: ["/api/documents"],
+  });
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/documents/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    },
+  });
 
   const handleStartRename = (conversation: Conversation) => {
     setEditingId(conversation.id);
@@ -267,6 +281,44 @@ export function ChatSidebar({
             </div>
           )}
         </ScrollArea>
+
+        {documents.length > 0 && (
+          <div className="border-t border-sidebar-border px-2 py-2">
+            <Button
+              variant="ghost"
+              onClick={() => setDocsExpanded(!docsExpanded)}
+              className="flex w-full items-center justify-start gap-2 px-2 text-muted-foreground"
+              data-testid="button-toggle-documents"
+            >
+              {docsExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              <FileText className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Documents ({documents.length})</span>
+            </Button>
+            {docsExpanded && (
+              <div className="mt-1 space-y-0.5">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center gap-2 rounded-lg px-3 py-1.5 group"
+                    data-testid={`document-item-${doc.id}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="truncate text-xs text-sidebar-foreground flex-1">{doc.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteDocMutation.mutate(doc.id)}
+                      className="invisible group-hover:visible shrink-0"
+                      data-testid={`button-delete-doc-${doc.id}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <UserMenu />
       </aside>

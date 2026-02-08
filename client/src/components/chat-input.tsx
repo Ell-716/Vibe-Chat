@@ -1,11 +1,12 @@
 import { useState, useRef, KeyboardEvent } from "react";
-import { Send, Plus, FileSpreadsheet, FolderOpen, X, Mic, Loader2, Square } from "lucide-react";
+import { Send, Plus, FileSpreadsheet, FolderOpen, X, Mic, Loader2, Square, FileUp } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import type { MCPTool } from "@shared/schema";
 
 interface ChatInputProps {
@@ -19,8 +20,10 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   const [selectedTools, setSelectedTools] = useState<MCPTool[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
   const handleSend = () => {
@@ -35,6 +38,31 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "Only PDF files are supported", variant: "destructive" });
+      return;
+    }
+    setIsUploading(true);
+    setMcpToolsOpen(false);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      const doc = await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      toast({ title: `"${doc.name}" uploaded`, description: `${doc.totalPages} pages, ${doc.chunkCount} sections indexed` });
+    } catch {
+      toast({ title: "Failed to upload document", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -217,6 +245,20 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
                     <p className="text-xs text-muted-foreground">Read or add rows to spreadsheets</p>
                   </div>
                 </button>
+                <div className="border-t border-border my-1" />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-foreground hover:bg-accent transition-colors"
+                  data-testid="button-upload-pdf"
+                >
+                  {isUploading ? <Loader2 className="h-5 w-5 text-primary animate-spin" /> : <FileUp className="h-5 w-5 text-primary" />}
+                  <div className="text-left">
+                    <p className="text-sm font-medium">{isUploading ? "Processing..." : "Upload PDF"}</p>
+                    <p className="text-xs text-muted-foreground">Add document for AI context</p>
+                  </div>
+                </button>
               </div>
             </PopoverContent>
           </Popover>
@@ -273,6 +315,14 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
           AI can make mistakes. Verify important information.
         </p>
       </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={handleFileUpload}
+        className="hidden"
+        data-testid="input-file-upload"
+      />
     </div>
   );
 }
