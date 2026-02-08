@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { PDFParse } from "pdf-parse";
 
 interface DocumentChunk {
@@ -21,7 +21,10 @@ interface RAGDocument {
 const documents: Map<string, RAGDocument> = new Map();
 const chunks: DocumentChunk[] = [];
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || "");
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 function splitTextIntoChunks(text: string, chunkSize = 1000, overlap = 200): string[] {
   const result: string[] = [];
@@ -47,9 +50,11 @@ function splitTextIntoChunks(text: string, chunkSize = 1000, overlap = 200): str
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-  const result = await model.embedContent(text);
-  return result.embedding.values;
+  const response = await openai.embeddings.create({
+    model: "text-embedding-3-small",
+    input: text,
+  });
+  return response.data[0].embedding;
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
