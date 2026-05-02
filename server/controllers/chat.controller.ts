@@ -124,7 +124,7 @@ export async function deleteConversation(req: Request, res: Response): Promise<v
 export async function sendMessage(req: Request, res: Response): Promise<void> {
   try {
     const conversationId = parseInt(req.params.id);
-    const { content, mcpTools, model = "gpt-4o-mini", agentId } = req.body;
+    const { content, mcpTools, model = "groq-llama", agentId } = req.body;
 
     if (!content || typeof content !== "string") {
       res.status(400).json({ error: "Content is required" });

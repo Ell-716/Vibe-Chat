@@ -7,13 +7,13 @@ export const env = {
   // ── Server ────────────────────────────────────────────────────────────────
   PORT: parseInt(process.env.PORT || "5000", 10),
   NODE_ENV: process.env.NODE_ENV || "development",
+  SESSION_SECRET: process.env.SESSION_SECRET as string | undefined,
 
-  // ── OpenAI (primary chat model + embeddings + support AI) ─────────────────
-  OPENAI_API_KEY: process.env.AI_INTEGRATIONS_OPENAI_API_KEY as string | undefined,
-  OPENAI_BASE_URL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL as string | undefined,
-
-  // ── Alternative LLM providers ─────────────────────────────────────────────
+  // ── Groq (default LLM provider) ───────────────────────────────────────────
   GROQ_API_KEY: process.env.GROQ_API_KEY as string | undefined,
+
+  // ── Optional LLM providers (multi-model switching) ────────────────────────
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY as string | undefined,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY as string | undefined,
   GOOGLE_GEMINI_API_KEY: process.env.GOOGLE_GEMINI_API_KEY as string | undefined,
 

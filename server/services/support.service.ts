@@ -10,7 +10,6 @@ import type {
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
-  baseURL: env.OPENAI_BASE_URL,
 });
 
 export interface TicketAnalysis {

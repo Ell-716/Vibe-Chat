@@ -4,7 +4,6 @@ import { env } from "../config/env";
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
-  baseURL: env.OPENAI_BASE_URL,
 });
 
 const client = new Client({

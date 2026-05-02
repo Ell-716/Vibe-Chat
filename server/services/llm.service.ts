@@ -8,7 +8,6 @@ import { buildOpenAITools, handleToolCall } from "./mcp.service";
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
-  baseURL: env.OPENAI_BASE_URL,
 });
 
 const groq = new OpenAI({

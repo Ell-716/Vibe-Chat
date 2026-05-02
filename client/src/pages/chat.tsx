@@ -36,7 +36,7 @@ export default function ChatPage() {
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-4o-mini");
+  const [selectedModel, setSelectedModel] = useState<string>("groq-llama");
   const [voiceResponseEnabled, setVoiceResponseEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem("voiceResponseEnabled");
     return saved ? JSON.parse(saved) : false;
