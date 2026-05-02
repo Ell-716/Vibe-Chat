@@ -50,6 +50,37 @@ async function playTextToSpeech(text: string): Promise<void> {
   await audio.play();
 }
 
+/**
+ * Splits message content into interleaved text and fenced code-block parts.
+ * Extracted outside the component so it is not recreated on every render.
+ * @param content - Raw message string possibly containing markdown code blocks.
+ * @returns Array of typed content parts ready for rendering.
+ */
+function formatContent(content: string): { type: "text" | "code"; content: string; language?: string }[] {
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const parts: { type: "text" | "code"; content: string; language?: string }[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", content: content.slice(lastIndex, match.index) });
+    }
+    parts.push({ type: "code", content: match[2], language: match[1] || "text" });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push({ type: "text", content: content.slice(lastIndex) });
+  }
+
+  if (parts.length === 0) {
+    parts.push({ type: "text", content });
+  }
+
+  return parts;
+}
+
 function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
@@ -118,31 +149,6 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatContent = (content: string) => {
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const parts: { type: "text" | "code"; content: string; language?: string }[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = codeBlockRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: "text", content: content.slice(lastIndex, match.index) });
-      }
-      parts.push({ type: "code", content: match[2], language: match[1] || "text" });
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < content.length) {
-      parts.push({ type: "text", content: content.slice(lastIndex) });
-    }
-
-    if (parts.length === 0) {
-      parts.push({ type: "text", content });
-    }
-
-    return parts;
   };
 
   const renderContent = (content: string) => {

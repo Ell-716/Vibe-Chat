@@ -51,6 +51,13 @@ export interface IStorage {
   getActiveEscalationRules(): Promise<EscalationRule[]>;
 }
 
+/** Maximum number of conversations retained in memory (oldest pruned on overflow). */
+const MAX_CONVERSATIONS = 100;
+
+/** Maximum number of support tickets retained in memory. When exceeded, the oldest
+ *  resolved or closed ticket is pruned first; active tickets are never evicted. */
+const MAX_TICKETS = 500;
+
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private conversations: Map<number, Conversation>;
@@ -126,6 +133,15 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.conversations.set(id, conversation);
+
+    // Prune oldest conversation (and its messages) when the cap is exceeded
+    if (this.conversations.size > MAX_CONVERSATIONS) {
+      const oldest = Array.from(this.conversations.values()).sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )[0];
+      if (oldest) await this.deleteConversation(oldest.id);
+    }
+
     return conversation;
   }
 
@@ -251,6 +267,16 @@ export class MemStorage implements IStorage {
       updatedAt: now,
     };
     this.tickets.set(id, ticket);
+
+    // Prune oldest resolved/closed ticket (and its messages) when the cap is exceeded.
+    // Active tickets are never evicted.
+    if (this.tickets.size > MAX_TICKETS) {
+      const closedTickets = Array.from(this.tickets.values())
+        .filter((t) => t.status === "resolved" || t.status === "closed")
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      if (closedTickets[0]) await this.deleteTicket(closedTickets[0].id);
+    }
+
     return ticket;
   }
 

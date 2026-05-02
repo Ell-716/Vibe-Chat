@@ -10,6 +10,7 @@ import type {
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
+  timeout: 30_000,
 });
 
 export interface TicketAnalysis {
@@ -207,22 +208,23 @@ export async function routeTicket(ticket: SupportTicket): Promise<{
   const analysis = await analyzeTicket(ticket.subject, ticket.description);
   const agent = await findBestAgentForTicket(analysis.category, analysis.priority);
 
-  await storage.updateTicket(ticket.id, {
-    aiSuggestedCategory: analysis.category,
-    aiSuggestedPriority: analysis.priority,
-    aiSummary: analysis.summary,
-    aiSuggestedResponse: analysis.suggestedResponse,
-    tags: analysis.tags,
-    category: analysis.category,
-    priority: analysis.priority,
-    assignedAgentId: agent?.id || null,
-  });
-
-  if (agent) {
-    await storage.updateSupportAgent(agent.id, {
-      currentTicketCount: agent.currentTicketCount + 1,
-    });
-  }
+  await Promise.all([
+    storage.updateTicket(ticket.id, {
+      aiSuggestedCategory: analysis.category,
+      aiSuggestedPriority: analysis.priority,
+      aiSummary: analysis.summary,
+      aiSuggestedResponse: analysis.suggestedResponse,
+      tags: analysis.tags,
+      category: analysis.category,
+      priority: analysis.priority,
+      assignedAgentId: agent?.id || null,
+    }),
+    agent
+      ? storage.updateSupportAgent(agent.id, {
+          currentTicketCount: agent.currentTicketCount + 1,
+        })
+      : Promise.resolve(),
+  ]);
 
   return { assignedAgent: agent, analysis };
 }
@@ -234,8 +236,10 @@ export async function routeTicket(ticket: SupportTicket): Promise<{
  * @returns Array of tickets that were escalated during this run.
  */
 export async function checkEscalations(): Promise<SupportTicket[]> {
-  const rules = await storage.getActiveEscalationRules();
-  const allTickets = await storage.getAllTickets();
+  const [rules, allTickets] = await Promise.all([
+    storage.getActiveEscalationRules(),
+    storage.getAllTickets(),
+  ]);
   const now = new Date();
   const escalatedTickets: SupportTicket[] = [];
 

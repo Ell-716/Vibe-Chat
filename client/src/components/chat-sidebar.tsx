@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, Sparkles, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,13 +73,13 @@ export function ChatSidebar({
     setEditingId(null);
     setEditingTitle("");
   };
-  const groupConversationsByDate = (conversations: Conversation[]) => {
+  const groups = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const groups: { label: string; conversations: Conversation[] }[] = [
+    const buckets: { label: string; conversations: Conversation[] }[] = [
       { label: "Today", conversations: [] },
       { label: "Yesterday", conversations: [] },
       { label: "Previous 7 Days", conversations: [] },
@@ -89,20 +89,18 @@ export function ChatSidebar({
     conversations.forEach((conv) => {
       const date = new Date(conv.createdAt);
       if (date >= today) {
-        groups[0].conversations.push(conv);
+        buckets[0].conversations.push(conv);
       } else if (date >= yesterday) {
-        groups[1].conversations.push(conv);
+        buckets[1].conversations.push(conv);
       } else if (date >= lastWeek) {
-        groups[2].conversations.push(conv);
+        buckets[2].conversations.push(conv);
       } else {
-        groups[3].conversations.push(conv);
+        buckets[3].conversations.push(conv);
       }
     });
 
-    return groups.filter((g) => g.conversations.length > 0);
-  };
-
-  const groups = groupConversationsByDate(conversations);
+    return buckets.filter((g) => g.conversations.length > 0);
+  }, [conversations]);
 
   return (
     <>

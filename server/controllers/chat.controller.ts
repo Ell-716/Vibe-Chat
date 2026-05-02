@@ -133,20 +133,16 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
 
     // Persist user turn before streaming so it's available in history
     await storage.createMessage(conversationId, "user", content);
-    const messages = await storage.getMessagesByConversation(conversationId);
 
-    // Resolve agent persona if one is selected
-    let agentPrompt: string | undefined;
-    if (agentId) {
-      const agent = await storage.getAgent(agentId);
-      if (agent) agentPrompt = agent.systemPrompt;
-    }
+    // Fetch conversation history, agent prompt, and RAG context in parallel —
+    // all three are independent of each other once the user message is saved
+    const [messages, agentResult, ragContext] = await Promise.all([
+      storage.getMessagesByConversation(conversationId),
+      agentId ? storage.getAgent(agentId) : Promise.resolve(undefined),
+      hasDocuments() ? retrieveContext(content) : Promise.resolve(""),
+    ]);
 
-    // Retrieve relevant document context only when documents have been uploaded
-    let ragContext = "";
-    if (hasDocuments()) {
-      ragContext = await retrieveContext(content);
-    }
+    const agentPrompt = agentResult?.systemPrompt;
 
     const systemPrompt = buildSystemPrompt(
       agentPrompt,
@@ -191,7 +187,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
  * GET /api/models
  * Returns the static list of supported AI models.
  */
-export function getModels(req: Request, res: Response): void {
+export function getModels(_req: Request, res: Response): void {
   res.json([
     { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
     { id: "groq-llama", name: "Llama 3", provider: "Groq" },
@@ -204,7 +200,7 @@ export function getModels(req: Request, res: Response): void {
  * GET /api/channels/status
  * Returns the connection status of each supported channel (Discord, web).
  */
-export function getChannelStatus(req: Request, res: Response): void {
+export function getChannelStatus(_req: Request, res: Response): void {
   const discordStatus = getDiscordBotStatus();
   res.json({
     discord: discordStatus,
@@ -263,7 +259,7 @@ export async function textToSpeech(req: Request, res: Response): Promise<void> {
  * GET /api/voices
  * Returns all available ElevenLabs voices for the configured account.
  */
-export async function listVoices(req: Request, res: Response): Promise<void> {
+export async function listVoices(_req: Request, res: Response): Promise<void> {
   try {
     if (!env.ELEVENLABS_API_KEY) {
       res.status(500).json({ error: "ElevenLabs API key not configured" });

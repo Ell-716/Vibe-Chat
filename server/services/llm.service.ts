@@ -8,15 +8,18 @@ import { buildOpenAITools, handleToolCall } from "./mcp.service";
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
+  timeout: 30_000,
 });
 
 const groq = new OpenAI({
   apiKey: env.GROQ_API_KEY,
   baseURL: "https://api.groq.com/openai/v1",
+  timeout: 30_000,
 });
 
 const anthropic = new Anthropic({
   apiKey: env.ANTHROPIC_API_KEY,
+  timeout: 30_000,
 });
 
 const genAI = new GoogleGenerativeAI(env.GOOGLE_GEMINI_API_KEY || "");

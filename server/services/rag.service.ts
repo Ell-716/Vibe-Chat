@@ -4,6 +4,7 @@ import { env } from "../config/env";
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
+  timeout: 30_000,
 });
 
 interface DocumentChunk {

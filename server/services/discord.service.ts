@@ -4,6 +4,7 @@ import { env } from "../config/env";
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
+  timeout: 30_000,
 });
 
 const client = new Client({
@@ -18,7 +19,12 @@ const client = new Client({
 /** Per-user conversation history kept in memory for the duration of the process. */
 const conversationHistory: Map<string, Array<{ role: "user" | "assistant"; content: string }>> = new Map();
 
+/** Rolling window of message pairs kept per user. */
 const MAX_HISTORY = 10;
+
+/** Maximum number of distinct users tracked in memory. When exceeded, the oldest
+ *  entry (by insertion order) is evicted to prevent unbounded growth. */
+const MAX_HISTORY_USERS = 100;
 
 /**
  * Generates an AI response for a Discord user using GPT-4o-mini.
@@ -55,6 +61,12 @@ async function generateAIResponse(userId: string, userMessage: string): Promise<
       response.choices[0]?.message?.content || "Sorry, I could not generate a response.";
 
     history.push({ role: "assistant", content: assistantMessage });
+
+    // Evict the oldest user entry if the Map has grown beyond the user cap
+    if (!conversationHistory.has(userId) && conversationHistory.size >= MAX_HISTORY_USERS) {
+      const oldestKey = conversationHistory.keys().next().value;
+      if (oldestKey !== undefined) conversationHistory.delete(oldestKey);
+    }
     conversationHistory.set(userId, history);
 
     return assistantMessage;
@@ -148,7 +160,14 @@ export async function startDiscordBot(): Promise<boolean> {
       resolve(true);
     });
 
-    client.on(Events.MessageCreate, handleMessage);
+    // Wrap in an arrow function so the returned Promise is caught — Discord.js
+    // does not await event handler return values, so unhandled rejections would
+    // otherwise crash the process in Node.js 15+.
+    client.on(Events.MessageCreate, (message) => {
+      handleMessage(message).catch((err) =>
+        console.error("Unhandled Discord message error:", err)
+      );
+    });
 
     client.on(Events.Error, (error) => {
       console.error("Discord client error:", error);

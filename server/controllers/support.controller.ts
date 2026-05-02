@@ -88,12 +88,14 @@ export async function getTickets(req: Request, res: Response): Promise<void> {
  */
 export async function getTicket(req: Request, res: Response): Promise<void> {
   try {
-    const ticket = await storage.getTicket(req.params.id);
+    const [ticket, messages] = await Promise.all([
+      storage.getTicket(req.params.id),
+      storage.getTicketMessages(req.params.id),
+    ]);
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
       return;
     }
-    const messages = await storage.getTicketMessages(req.params.id);
     res.json({ ...ticket, messages });
   } catch (error) {
     console.error("Error fetching ticket:", error);
@@ -313,13 +315,14 @@ export async function createTicketMessage(req: Request, res: Response): Promise<
  */
 export async function generateResponse(req: Request, res: Response): Promise<void> {
   try {
-    const ticket = await storage.getTicket(req.params.id);
+    const [ticket, messages] = await Promise.all([
+      storage.getTicket(req.params.id),
+      storage.getTicketMessages(req.params.id),
+    ]);
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
       return;
     }
-
-    const messages = await storage.getTicketMessages(req.params.id);
     const conversationHistory = messages.map(
       (m) => `${m.senderType === "customer" ? "Customer" : "Agent"}: ${m.content}`
     );
@@ -389,13 +392,14 @@ export async function assignTicket(req: Request, res: Response): Promise<void> {
   try {
     const { agentId } = req.body;
 
-    const ticket = await storage.getTicket(req.params.id);
+    const [ticket, agent] = await Promise.all([
+      storage.getTicket(req.params.id),
+      storage.getSupportAgent(agentId),
+    ]);
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
       return;
     }
-
-    const agent = await storage.getSupportAgent(agentId);
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;
@@ -478,7 +482,7 @@ export async function escalateTicket(req: Request, res: Response): Promise<void>
  * GET /api/support/agents
  * Returns all support agents.
  */
-export async function getSupportAgents(req: Request, res: Response): Promise<void> {
+export async function getSupportAgents(_req: Request, res: Response): Promise<void> {
   try {
     const agents = await storage.getAllSupportAgents();
     res.json(agents);
@@ -494,12 +498,14 @@ export async function getSupportAgents(req: Request, res: Response): Promise<voi
  */
 export async function getSupportAgent(req: Request, res: Response): Promise<void> {
   try {
-    const agent = await storage.getSupportAgent(req.params.id);
+    const [agent, tickets] = await Promise.all([
+      storage.getSupportAgent(req.params.id),
+      storage.getTicketsByAgent(req.params.id),
+    ]);
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;
     }
-    const tickets = await storage.getTicketsByAgent(req.params.id);
     res.json({ ...agent, assignedTickets: tickets });
   } catch (error) {
     console.error("Error fetching agent:", error);
@@ -570,7 +576,7 @@ export async function deleteSupportAgent(req: Request, res: Response): Promise<v
  * GET /api/support/escalation-rules
  * Returns all configured escalation rules.
  */
-export async function getEscalationRules(req: Request, res: Response): Promise<void> {
+export async function getEscalationRules(_req: Request, res: Response): Promise<void> {
   try {
     const rules = await storage.getAllEscalationRules();
     res.json(rules);
@@ -585,7 +591,7 @@ export async function getEscalationRules(req: Request, res: Response): Promise<v
  * Runs the auto-escalation engine against all open tickets and returns which
  * tickets were escalated during this run.
  */
-export async function runEscalationCheck(req: Request, res: Response): Promise<void> {
+export async function runEscalationCheck(_req: Request, res: Response): Promise<void> {
   try {
     const escalatedTickets = await checkEscalations();
     res.json({ escalatedCount: escalatedTickets.length, tickets: escalatedTickets });
@@ -600,10 +606,12 @@ export async function runEscalationCheck(req: Request, res: Response): Promise<v
  * Returns aggregate support dashboard statistics: ticket counts by status/category/priority,
  * average response time, SLA breaches, and agent availability.
  */
-export async function getStats(req: Request, res: Response): Promise<void> {
+export async function getStats(_req: Request, res: Response): Promise<void> {
   try {
-    const tickets = await storage.getAllTickets();
-    const agents = await storage.getAllSupportAgents();
+    const [tickets, agents] = await Promise.all([
+      storage.getAllTickets(),
+      storage.getAllSupportAgents(),
+    ]);
 
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);

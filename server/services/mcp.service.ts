@@ -26,7 +26,8 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
     params,
   };
 
-  console.log("MCP Request:", JSON.stringify(requestBody, null, 2));
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
   const response = await fetch(env.ZAPIER_MCP_URL, {
     method: "POST",
@@ -36,7 +37,8 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
       Authorization: `Bearer ${env.ZAPIER_MCP_API_KEY}`,
     },
     body: JSON.stringify(requestBody),
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
 
   if (!response.ok) {
     const error = await response.text();
@@ -49,7 +51,6 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
 
   if (contentType.includes("text/event-stream")) {
     const text = await response.text();
-    console.log("MCP SSE Response:", text);
 
     const lines = text.split("\n");
     let jsonData = "";
@@ -84,8 +85,6 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
   } else {
     result = await response.json();
   }
-
-  console.log("MCP Response:", JSON.stringify(result, null, 2));
 
   if (result.error) {
     throw new Error(`MCP error: ${result.error.message || JSON.stringify(result.error)}`);
@@ -272,7 +271,7 @@ export async function handleToolCall(
   functionName: string,
   args: Record<string, any>
 ): Promise<string> {
-  console.log(`Handling tool call: ${functionName}`, args);
+  console.log(`Handling tool call: ${functionName}`);
 
   try {
     let mcpToolName: string;

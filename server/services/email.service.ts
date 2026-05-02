@@ -25,6 +25,9 @@ async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
     const response = await fetch(EMAILJS_API_URL, {
       method: "POST",
       headers: {
@@ -38,7 +41,8 @@ async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
         accessToken: EMAILJS_PRIVATE_KEY,
         template_params: params,
       }),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
 
     if (response.ok) {
       console.log(`Email sent successfully via EmailJS to ${params.to_email}`);

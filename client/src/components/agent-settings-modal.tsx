@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Bot, Code, PenTool, BarChart, GraduationCap, Plus, Trash2, Edit2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const iconMap: Record<string, typeof Bot> = {
 };
 
 export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, onSelectAgent }: AgentSettingsModalProps) {
+  const { toast } = useToast();
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
@@ -63,6 +65,9 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       resetForm();
     },
+    onError: () => {
+      toast({ title: "Failed to create agent", variant: "destructive" });
+    },
   });
 
   const updateAgentMutation = useMutation({
@@ -76,6 +81,9 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
         onSelectAgent(updatedAgent);
       }
       resetForm();
+    },
+    onError: () => {
+      toast({ title: "Failed to save agent", variant: "destructive" });
     },
   });
 
