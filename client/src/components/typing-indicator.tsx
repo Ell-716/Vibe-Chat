@@ -1,3 +1,7 @@
+/**
+ * Three-dot animated indicator shown while the AI is generating a response.
+ * Dots bounce in staggered sequence (0 ms, 150 ms, 300 ms delays).
+ */
 export function TypingIndicator() {
   return (
     <div className="flex items-center gap-1" data-testid="typing-indicator">

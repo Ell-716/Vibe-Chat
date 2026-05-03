@@ -71,8 +71,7 @@ export default function TicketDetail({ ticket, agents, onClose, onUpdate }: Tick
       return res.json();
     },
     onSuccess: (updated: SupportTicket) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/support/stats"] });
+      queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "/api/support/tickets" || q.queryKey[0] === "/api/support/stats" });
       onUpdate(updated);
       toast({ title: "Status updated" });
     },
@@ -84,8 +83,7 @@ export default function TicketDetail({ ticket, agents, onClose, onUpdate }: Tick
       return res.json();
     },
     onSuccess: (updated: SupportTicket) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/support/agents"] });
+      queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "/api/support/tickets" || q.queryKey[0] === "/api/support/agents" });
       onUpdate(updated);
       toast({ title: "Ticket assigned" });
     },
@@ -97,8 +95,7 @@ export default function TicketDetail({ ticket, agents, onClose, onUpdate }: Tick
       return res.json();
     },
     onSuccess: (updated: SupportTicket) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/support/stats"] });
+      queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "/api/support/tickets" || q.queryKey[0] === "/api/support/stats" });
       onUpdate(updated);
       toast({ title: "Ticket escalated", variant: "destructive" });
     },
@@ -339,10 +336,10 @@ export default function TicketDetail({ ticket, agents, onClose, onUpdate }: Tick
               AI Suggested Response
             </div>
             <p className="text-sm text-muted-foreground line-clamp-2">{ticket.aiSuggestedResponse}</p>
-            <Button 
-              variant="link" 
-              size="sm" 
-              className="p-0 h-auto mt-1"
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 h-auto mt-1 text-primary hover:text-primary hover:bg-transparent"
               onClick={() => setNewMessage(ticket.aiSuggestedResponse!)}
               data-testid="button-use-ai-suggestion"
             >

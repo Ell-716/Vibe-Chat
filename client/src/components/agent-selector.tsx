@@ -24,7 +24,21 @@ const iconMap: Record<string, typeof Bot> = {
   "graduation-cap": GraduationCap,
 };
 
+/**
+ * Dropdown button for switching the active prompt agent.
+ * Shows the selected agent's icon and name; the last item opens the agent settings modal.
+ * @param agents - List of available agents to display.
+ * @param selectedAgent - The currently active agent (null if none selected).
+ * @param onSelectAgent - Called with the chosen Agent when selection changes.
+ * @param onOpenSettings - Called when the "Manage Agents" item is clicked.
+ */
 export function AgentSelector({ agents, selectedAgent, onSelectAgent, onOpenSettings }: AgentSelectorProps) {
+  /**
+   * Resolves an icon component from the icon name string.
+   * Falls back to Bot if the name is not in the map.
+   * @param iconName - The icon key from the agent record.
+   * @returns The corresponding Lucide icon component.
+   */
   const getIcon = (iconName: string) => {
     const Icon = iconMap[iconName] || Bot;
     return Icon;

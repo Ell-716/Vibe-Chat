@@ -15,6 +15,12 @@ interface MessageListProps {
 
 let currentAudio: HTMLAudioElement | null = null;
 
+/**
+ * Fetches TTS audio for the given text and plays it through the browser.
+ * Stops any currently playing audio first to prevent overlap.
+ * Revokes the object URL on playback end or error to avoid memory leaks.
+ * @param text - The text to synthesise and play.
+ */
 async function playTextToSpeech(text: string): Promise<void> {
   if (currentAudio) {
     currentAudio.pause();
@@ -50,6 +56,44 @@ async function playTextToSpeech(text: string): Promise<void> {
   await audio.play();
 }
 
+/**
+ * Splits message content into interleaved text and fenced code-block parts.
+ * Extracted outside the component so it is not recreated on every render.
+ * @param content - Raw message string possibly containing markdown code blocks.
+ * @returns Array of typed content parts ready for rendering.
+ */
+function formatContent(content: string): { type: "text" | "code"; content: string; language?: string }[] {
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const parts: { type: "text" | "code"; content: string; language?: string }[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", content: content.slice(lastIndex, match.index) });
+    }
+    parts.push({ type: "code", content: match[2], language: match[1] || "text" });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push({ type: "text", content: content.slice(lastIndex) });
+  }
+
+  if (parts.length === 0) {
+    parts.push({ type: "text", content });
+  }
+
+  return parts;
+}
+
+/**
+ * Renders a single chat message bubble with copy and TTS speak actions.
+ * User messages are right-aligned; assistant messages are left-aligned with a bot avatar.
+ * When isStreaming is true, an animated cursor is appended to indicate in-progress generation.
+ * @param message - The message record to render.
+ * @param isStreaming - Whether this bubble is currently being streamed (shows cursor).
+ */
 function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
@@ -57,18 +101,30 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
   const [isLoading, setIsLoading] = useState(false);
   const isUser = message.role === "user";
 
+  /** Copies the full message content to the clipboard and shows a 2-second check icon. */
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  /**
+   * Copies a specific code block to the clipboard and shows a 2-second check icon
+   * on the corresponding code block copy button.
+   * @param code - The code string to copy.
+   * @param index - The zero-based index of the code block within the message.
+   */
   const handleCopyCode = async (code: string, index: number) => {
     await navigator.clipboard.writeText(code);
     setCopiedCodeIndex(index);
     setTimeout(() => setCopiedCodeIndex(null), 2000);
   };
 
+  /**
+   * Toggles TTS playback for this message bubble.
+   * If audio is already playing, pauses it immediately. Otherwise fetches audio from
+   * /api/text-to-speech, plays it, and revokes the object URL on completion or error.
+   */
   const handleSpeak = async () => {
     if (isPlaying && currentAudio) {
       currentAudio.pause();
@@ -120,33 +176,15 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
     }
   };
 
-  const formatContent = (content: string) => {
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const parts: { type: "text" | "code"; content: string; language?: string }[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = codeBlockRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: "text", content: content.slice(lastIndex, match.index) });
-      }
-      parts.push({ type: "code", content: match[2], language: match[1] || "text" });
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < content.length) {
-      parts.push({ type: "text", content: content.slice(lastIndex) });
-    }
-
-    if (parts.length === 0) {
-      parts.push({ type: "text", content });
-    }
-
-    return parts;
-  };
-
+  /**
+   * Renders message content as interleaved text spans and syntax-highlighted code blocks.
+   * codeBlockIndex tracks each code block's position so copy buttons target the right block.
+   * @param content - Raw message string.
+   * @returns Array of React nodes ready to render inside the message bubble.
+   */
   const renderContent = (content: string) => {
     const parts = formatContent(content);
+    // Separate counter from array index so code blocks keep their own stable copy-button IDs
     let codeBlockIndex = 0;
 
     return parts.map((part, index) => {
@@ -247,6 +285,18 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
   );
 }
 
+/**
+ * Scrollable list of MessageBubble components plus a streaming-in-progress state.
+ * While streaming, renders a live bubble (with cursor) if content has arrived, or
+ * a TypingIndicator if the first chunk hasn't appeared yet.
+ * Auto-plays TTS for the last assistant message when voiceResponseEnabled is true
+ * and streaming has just completed.
+ * @param messages - Persisted messages to display.
+ * @param streamingMessage - Accumulated text of the in-progress streamed response.
+ * @param isStreaming - Whether the AI is currently generating.
+ * @param messagesEndRef - Ref attached to the bottom sentinel div for scroll-to-bottom.
+ * @param voiceResponseEnabled - Whether to auto-play TTS after each assistant response.
+ */
 export function MessageList({ messages, streamingMessage, isStreaming, messagesEndRef, voiceResponseEnabled }: MessageListProps) {
   const lastPlayedMessageIdRef = useRef<number | null>(null);
   const wasStreamingRef = useRef(false);

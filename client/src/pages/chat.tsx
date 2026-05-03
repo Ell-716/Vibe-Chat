@@ -31,12 +31,18 @@ interface ConversationWithMessages extends Conversation {
   messages: Message[];
 }
 
+/**
+ * Main chat page — the "/" route.
+ * Manages conversation selection, AI model/agent selection, message streaming,
+ * sidebar state, and optional voice response auto-play.
+ * All server state is owned by TanStack Query; streaming is done via raw fetch + ReadableStream.
+ */
 export default function ChatPage() {
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-4o-mini");
+  const [selectedModel, setSelectedModel] = useState<string>("groq-llama");
   const [voiceResponseEnabled, setVoiceResponseEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem("voiceResponseEnabled");
     return saved ? JSON.parse(saved) : false;
@@ -46,6 +52,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  /** Flips the voice-response toggle and persists the new value to localStorage. */
   const toggleVoiceResponse = () => {
     const newValue = !voiceResponseEnabled;
     setVoiceResponseEnabled(newValue);
@@ -142,54 +149,77 @@ export default function ChatPage() {
     scrollToBottom();
   }, [activeConversation?.messages, streamingMessage, scrollToBottom]);
 
+  /** Clears the active conversation and closes the sidebar. */
   const handleNewChat = () => {
     setActiveConversationId(null);
     setSidebarOpen(false);
   };
 
+  /** Switches to the given conversation and closes the sidebar on mobile. */
   const handleSelectConversation = (id: number) => {
     setActiveConversationId(id);
     setSidebarOpen(false);
   };
 
+  /** Delegates to the delete mutation; clears active ID if the deleted conversation was active. */
   const handleDeleteConversation = (id: number) => {
     deleteConversationMutation.mutate(id);
   };
 
+  /** Delegates to the rename mutation. */
   const handleRenameConversation = (id: number, title: string) => {
     renameConversationMutation.mutate({ id, title });
   };
 
+  /** Navigates to the home/empty state by clearing the active conversation. */
   const handleGoHome = () => {
     setActiveConversationId(null);
     setSidebarOpen(false);
   };
 
+  /**
+   * Entry point for sending a user message.
+   * If no conversation is active, creates one first using the first 50 characters as the title.
+   * If this is the first message on an untitled ("New Chat") conversation, auto-renames it.
+   * @param content - The message text to send.
+   * @param mcpTools - Optional MCP tool configs to attach to the request.
+   */
   const handleSendMessage = async (content: string, mcpTools?: MCPTool[]) => {
     if (!activeConversationId) {
+      // No conversation yet — create one, then stream into it
       const res = await apiRequest("POST", "/api/conversations", { title: content.slice(0, 50) });
       const newConversation = await res.json();
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       setActiveConversationId(newConversation.id);
-      
+
       await queryClient.invalidateQueries({ queryKey: ["/api/conversations", newConversation.id] });
       await streamMessage(newConversation.id, content, mcpTools);
     } else {
       const currentConversation = activeConversation;
       const isFirstMessage = currentConversation?.messages?.length === 0;
       const isDefaultTitle = currentConversation?.title === "New Chat";
-      
+
+      // Auto-rename the conversation on the first real message to give it a meaningful title
       if (isFirstMessage && isDefaultTitle) {
-        renameConversationMutation.mutate({ 
-          id: activeConversationId, 
-          title: content.slice(0, 50) 
+        renameConversationMutation.mutate({
+          id: activeConversationId,
+          title: content.slice(0, 50)
         });
       }
-      
+
       await streamMessage(activeConversationId, content, mcpTools);
     }
   };
 
+  /**
+   * POSTs the message to the server and consumes the SSE stream.
+   * Optimistically prepends the user message to the query cache for instant display.
+   * Each SSE line is parsed as JSON; "content" chunks are accumulated into streamingMessage
+   * and "done" triggers a cache invalidation to fetch the final persisted state.
+   * @param conversationId - The target conversation's ID.
+   * @param content - The message text.
+   * @param mcpTools - Optional MCP tools to pass to the server.
+   */
   const streamMessage = async (conversationId: number, content: string, mcpTools?: MCPTool[]) => {
     setIsStreaming(true);
     setStreamingMessage("");
@@ -239,6 +269,7 @@ export default function ChatPage() {
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             try {
+              // SSE lines are "data: <json>" — slice 6 chars to get the JSON payload
               const data = JSON.parse(line.slice(6));
               if (data.content) {
                 fullResponse += data.content;
@@ -266,6 +297,7 @@ export default function ChatPage() {
     }
   };
 
+  /** Sends a pre-written suggestion prompt as if the user typed and submitted it. */
   const handleSuggestionClick = (suggestion: string) => {
     handleSendMessage(suggestion);
   };

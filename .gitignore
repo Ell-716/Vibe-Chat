@@ -9,3 +9,6 @@ vite.config.ts.*
 .env
 .env.local
 .env.*.local
+
+# Claude Code instructions (local only)
+CLAUDE.md

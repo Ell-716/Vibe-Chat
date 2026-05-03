@@ -18,6 +18,11 @@ interface ChannelStatus {
   };
 }
 
+/**
+ * Header widget showing live connection status for each supported channel.
+ * Polls /api/channels/status every 30 seconds. Renders Web (always active) and
+ * Discord (connected/offline) badges with tooltip details.
+ */
 export function ChannelStatus() {
   const { data: status } = useQuery<ChannelStatus>({
     queryKey: ["/api/channels/status"],
