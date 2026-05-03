@@ -45,6 +45,16 @@ const iconMap: Record<string, typeof Bot> = {
   "graduation-cap": GraduationCap,
 };
 
+/**
+ * Modal for browsing, creating, editing, and deleting prompt agents.
+ * Renders a list of agents on the left and a form on the right when in edit/create mode.
+ * Default agents can be viewed but not deleted.
+ * @param open - Whether the dialog is visible.
+ * @param onOpenChange - Called when the dialog open state should change.
+ * @param agents - Full list of agents to display.
+ * @param selectedAgent - Currently active agent (highlighted in the list).
+ * @param onSelectAgent - Called when an agent is activated via the list.
+ */
 export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, onSelectAgent }: AgentSettingsModalProps) {
   const { toast } = useToast();
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
@@ -96,12 +106,14 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
     },
   });
 
+  /** Clears the form and exits create/edit mode, returning to the agent list view. */
   const resetForm = () => {
     setEditingAgent(null);
     setIsCreating(false);
     setFormData({ name: "", description: "", systemPrompt: "", icon: "bot" });
   };
 
+  /** Populates the form with the agent's current values and switches to edit mode. */
   const handleEditAgent = (agent: Agent) => {
     setEditingAgent(agent);
     setIsCreating(false);
@@ -113,12 +125,14 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
     });
   };
 
+  /** Resets the form to blank values and switches to create mode. */
   const handleCreateNew = () => {
     setIsCreating(true);
     setEditingAgent(null);
     setFormData({ name: "", description: "", systemPrompt: "", icon: "bot" });
   };
 
+  /** Dispatches the appropriate mutation (update or create) based on current form mode. */
   const handleSave = () => {
     if (editingAgent) {
       updateAgentMutation.mutate({ id: editingAgent.id, data: formData });
@@ -127,12 +141,22 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
     }
   };
 
+  /**
+   * Deletes a user-created agent. Default agents are protected and silently ignored.
+   * @param agent - The agent to delete.
+   */
   const handleDelete = (agent: Agent) => {
+    // isDefault agents cannot be deleted — guard here mirrors the server-side guard in MemStorage
     if (!agent.isDefault) {
       deleteAgentMutation.mutate(agent.id);
     }
   };
 
+  /**
+   * Resolves a Lucide icon component from an agent icon name string.
+   * @param iconName - The icon key stored on the agent record.
+   * @returns The corresponding icon component, falling back to Bot.
+   */
   const getIcon = (iconName: string) => {
     return iconMap[iconName] || Bot;
   };

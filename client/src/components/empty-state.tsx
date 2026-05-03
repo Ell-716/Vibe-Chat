@@ -31,6 +31,11 @@ const suggestions = [
   },
 ];
 
+/**
+ * Placeholder shown when no conversation is active.
+ * Renders a welcome headline and a grid of prompt suggestion cards.
+ * @param onSuggestionClick - Called with the full prompt string when a suggestion card is clicked.
+ */
 export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">

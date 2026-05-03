@@ -14,6 +14,14 @@ interface ChatInputProps {
   isStreaming: boolean;
 }
 
+/**
+ * Chat message input bar with MCP tool selection, PDF upload, and voice recording.
+ * Sends the message (and any attached tools) via onSendMessage on Enter or Send click.
+ * Voice recording captures audio/webm, sends it to /api/speech-to-text, and appends
+ * the transcript to the current message field.
+ * @param onSendMessage - Called with the trimmed message text and optional MCP tools.
+ * @param isStreaming - Disables input while the AI is generating a response.
+ */
 export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [mcpToolsOpen, setMcpToolsOpen] = useState(false);
@@ -26,6 +34,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
+  /** Sends the current message and resets input state. No-ops when empty or streaming. */
   const handleSend = () => {
     if (message.trim() && !isStreaming) {
       onSendMessage(message.trim(), selectedTools.length > 0 ? selectedTools : undefined);
@@ -34,6 +43,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     }
   };
 
+  /** Submits on Enter (without Shift). Shift+Enter is reserved for future multi-line support. */
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -41,6 +51,10 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     }
   };
 
+  /**
+   * Handles PDF file selection, validates the file type, uploads to /api/documents/upload,
+   * and invalidates the documents cache on success.
+   */
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -66,7 +80,12 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     }
   };
 
+  /**
+   * Adds an MCP tool to the selection list for the next message.
+   * Only one tool of each type (drive / sheets) can be active at a time.
+   */
   const handleSelectTool = (tool: Omit<MCPTool, 'id'>) => {
+    // Prevent duplicate tool types — silently close the popover if already selected
     const alreadySelected = selectedTools.some(t => t.type === tool.type);
     if (alreadySelected) {
       setMcpToolsOpen(false);
@@ -80,10 +99,16 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     setMcpToolsOpen(false);
   };
 
+  /** Removes an MCP tool chip from the selection list by its generated ID. */
   const handleRemoveTool = (toolId: string) => {
     setSelectedTools(selectedTools.filter(t => t.id !== toolId));
   };
 
+  /**
+   * Requests microphone access, starts a MediaRecorder session, and wires up
+   * the onstop handler to POST the recorded blob to /api/speech-to-text.
+   * The transcript is appended to the current message field on success.
+   */
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -162,6 +187,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     }
   };
 
+  /** Stops the active MediaRecorder, which triggers the onstop → transcription flow. */
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -169,6 +195,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
     }
   };
 
+  /** Toggles recording on/off based on current state. */
   const handleMicClick = () => {
     if (isRecording) {
       stopRecording();

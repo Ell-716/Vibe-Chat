@@ -10,6 +10,12 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+/**
+ * Provides light/dark theme context to the component tree.
+ * Persists the selected theme to localStorage and applies it as a class on <html>.
+ * Defaults to "dark" when no stored preference is found.
+ * @param children - Child components that will have access to theme context.
+ */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
@@ -37,6 +43,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Returns the current theme context value (theme, setTheme, toggleTheme).
+ * Must be called within a ThemeProvider — throws otherwise.
+ * @returns The ThemeContextValue for the nearest ThemeProvider ancestor.
+ */
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {

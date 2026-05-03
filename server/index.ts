@@ -23,6 +23,11 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+/**
+ * Prints a timestamped log line to stdout.
+ * @param message - The message to log.
+ * @param source - Label shown in brackets after the timestamp (defaults to "express").
+ */
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -34,11 +39,18 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+/**
+ * Request-logging middleware.
+ * Intercepts res.json to capture the response body, then logs method, path,
+ * status code, duration, and a JSON snippet for every /api request once the
+ * response has finished.
+ */
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Monkey-patch res.json so we can read the body before it is sent
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;

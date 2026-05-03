@@ -8,6 +8,10 @@ import ChatPage from "@/pages/chat";
 import SupportPage from "@/pages/support";
 import NotFound from "@/pages/not-found";
 
+/**
+ * Wouter-based client-side router.
+ * Maps "/" to ChatPage, "/support" to SupportPage, and all other paths to NotFound.
+ */
 function Router() {
   return (
     <Switch>
@@ -18,6 +22,11 @@ function Router() {
   );
 }
 
+/**
+ * Root application component.
+ * Wraps the app in ThemeProvider, QueryClientProvider, and TooltipProvider,
+ * then renders the Router inside a full-screen flex layout.
+ */
 function App() {
   return (
     <ThemeProvider>

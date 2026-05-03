@@ -8,6 +8,14 @@ import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
+/**
+ * Attaches Vite's dev-server middleware to the Express app for development.
+ * Serves the React SPA with HMR over the shared HTTP server and transforms
+ * index.html on every request so template changes are reflected immediately.
+ * Errors from Vite's internal logger call process.exit(1) to surface them clearly.
+ * @param server - The Node.js HTTP server instance (used for HMR websocket).
+ * @param app - The Express application to attach Vite middleware to.
+ */
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,

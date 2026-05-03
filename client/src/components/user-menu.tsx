@@ -10,6 +10,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+/**
+ * Sidebar footer widget with a user avatar dropdown (Settings, Support, Help, Log out)
+ * and a theme toggle button.
+ */
 export function UserMenu() {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-sidebar-border">

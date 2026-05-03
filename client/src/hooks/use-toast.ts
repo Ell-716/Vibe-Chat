@@ -24,6 +24,10 @@ const actionTypes = {
 
 let count = 0
 
+/**
+ * Generates a unique sequential ID for a toast, wrapping at MAX_SAFE_INTEGER.
+ * @returns A string representation of the next counter value.
+ */
 function genId() {
   count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
@@ -55,6 +59,11 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
+/**
+ * Schedules a REMOVE_TOAST dispatch for the given toast after TOAST_REMOVE_DELAY ms.
+ * Idempotent — calling it twice for the same toast ID has no additional effect.
+ * @param toastId - The ID of the toast to schedule for removal.
+ */
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
     return
@@ -71,6 +80,15 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
+/**
+ * Pure reducer for toast state transitions.
+ * ADD_TOAST prepends and slices to TOAST_LIMIT.
+ * DISMISS_TOAST marks toasts as closed and queues their removal (side-effect noted inline).
+ * REMOVE_TOAST deletes by ID, or clears all when toastId is undefined.
+ * @param state - Current toast state.
+ * @param action - The dispatched action.
+ * @returns The next toast state.
+ */
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
@@ -130,6 +148,10 @@ const listeners: Array<(state: State) => void> = []
 
 let memoryState: State = { toasts: [] }
 
+/**
+ * Applies an action to the module-level memory state and notifies all subscribed listeners.
+ * @param action - The action to dispatch.
+ */
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
@@ -139,6 +161,11 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+/**
+ * Displays a toast notification and returns control handles.
+ * @param props - Toast content and variant props (title, description, variant, etc.).
+ * @returns Object with the toast's id, a dismiss() callback, and an update() callback.
+ */
 function toast({ ...props }: Toast) {
   const id = genId()
 
@@ -168,6 +195,11 @@ function toast({ ...props }: Toast) {
   }
 }
 
+/**
+ * React hook that subscribes a component to the global toast state.
+ * Registers a listener on mount and cleans it up on unmount.
+ * @returns The current toast state plus the toast() and dismiss() helpers.
+ */
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 

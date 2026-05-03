@@ -69,6 +69,11 @@ interface TicketStats {
   ticketsByPriority: Record<string, number>;
 }
 
+/**
+ * Support dashboard page — the "/support" route.
+ * Shows a stats bar, a filterable ticket list, and a side-panel ticket detail view.
+ * Includes an escalation check button and a ticket creation dialog.
+ */
 export default function SupportPage() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -287,6 +292,11 @@ export default function SupportPage() {
   );
 }
 
+/**
+ * Dialog form for creating a new support ticket.
+ * Submits to POST /api/support/tickets and invalidates the tickets + stats queries on success.
+ * @param onClose - Callback to close the parent Dialog after a successful submission or cancel.
+ */
 function CreateTicketDialog({ onClose }: { onClose: () => void }) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -318,6 +328,7 @@ function CreateTicketDialog({ onClose }: { onClose: () => void }) {
     },
   });
 
+  /** Prevents default form submission and fires the create mutation with current field values. */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate({

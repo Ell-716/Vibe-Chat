@@ -58,6 +58,12 @@ const MAX_CONVERSATIONS = 100;
  *  resolved or closed ticket is pruned first; active tickets are never evicted. */
 const MAX_TICKETS = 500;
 
+/**
+ * In-memory implementation of IStorage backed by plain Maps.
+ * All data is process-scoped and ephemeral — it is lost on server restart.
+ * Bounded growth is enforced via MAX_CONVERSATIONS and MAX_TICKETS caps.
+ * Swap this out for a DB-backed implementation to get persistence.
+ */
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private conversations: Map<number, Conversation>;
@@ -98,16 +104,31 @@ export class MemStorage implements IStorage {
     }
   }
 
+  /**
+   * Retrieves a user by their UUID.
+   * @param id - The user's UUID.
+   * @returns The matching User, or undefined if not found.
+   */
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
+  /**
+   * Retrieves a user by username (case-sensitive).
+   * @param username - The username to look up.
+   * @returns The matching User, or undefined if not found.
+   */
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.username === username,
     );
   }
 
+  /**
+   * Creates and persists a new user with a generated UUID.
+   * @param insertUser - User fields (username, password hash, etc.).
+   * @returns The newly created User including its generated id.
+   */
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { ...insertUser, id };
@@ -115,10 +136,19 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  /**
+   * Retrieves a conversation by its numeric ID.
+   * @param id - The conversation's integer ID.
+   * @returns The matching Conversation, or undefined if not found.
+   */
   async getConversation(id: number): Promise<Conversation | undefined> {
     return this.conversations.get(id);
   }
 
+  /**
+   * Returns all conversations sorted newest-first.
+   * @returns Array of all Conversation records.
+   */
   async getAllConversations(): Promise<Conversation[]> {
     return Array.from(this.conversations.values()).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -145,6 +175,12 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
+  /**
+   * Renames a conversation.
+   * @param id - The conversation's integer ID.
+   * @param title - The new title string.
+   * @returns The updated Conversation, or undefined if not found.
+   */
   async updateConversationTitle(id: number, title: string): Promise<Conversation | undefined> {
     const conversation = this.conversations.get(id);
     if (!conversation) return undefined;
@@ -153,6 +189,10 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
+  /**
+   * Deletes a conversation and all of its associated messages.
+   * @param id - The conversation's integer ID.
+   */
   async deleteConversation(id: number): Promise<void> {
     this.conversations.delete(id);
     for (const [msgId, msg] of this.messages) {
@@ -162,12 +202,24 @@ export class MemStorage implements IStorage {
     }
   }
 
+  /**
+   * Returns all messages for a conversation sorted oldest-first.
+   * @param conversationId - The parent conversation's integer ID.
+   * @returns Chronologically ordered array of Message records.
+   */
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
     return Array.from(this.messages.values())
       .filter((msg) => msg.conversationId === conversationId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
+  /**
+   * Persists a new message in the given conversation.
+   * @param conversationId - The parent conversation's integer ID.
+   * @param role - Message author role ("user" or "assistant").
+   * @param content - The message text content.
+   * @returns The newly created Message including its auto-incremented id.
+   */
   async createMessage(conversationId: number, role: string, content: string): Promise<Message> {
     const id = this.messageIdCounter++;
     const message: Message = {
@@ -181,14 +233,28 @@ export class MemStorage implements IStorage {
     return message;
   }
 
+  /**
+   * Returns all prompt agents (default and user-created).
+   * @returns Array of all Agent records.
+   */
   async getAllAgents(): Promise<Agent[]> {
     return Array.from(this.agents.values());
   }
 
+  /**
+   * Retrieves a prompt agent by its UUID.
+   * @param id - The agent's UUID.
+   * @returns The matching Agent, or undefined if not found.
+   */
   async getAgent(id: string): Promise<Agent | undefined> {
     return this.agents.get(id);
   }
 
+  /**
+   * Creates a new user-defined prompt agent with a generated UUID.
+   * @param agent - Agent fields excluding id.
+   * @returns The newly created Agent including its generated id.
+   */
   async createAgent(agent: Omit<Agent, 'id'>): Promise<Agent> {
     const id = randomUUID();
     const newAgent: Agent = { ...agent, id };
@@ -196,6 +262,12 @@ export class MemStorage implements IStorage {
     return newAgent;
   }
 
+  /**
+   * Applies a partial update to a prompt agent.
+   * @param id - The agent's UUID.
+   * @param updates - Partial Agent fields to merge in.
+   * @returns The updated Agent, or undefined if not found.
+   */
   async updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined> {
     const agent = this.agents.get(id);
     if (!agent) return undefined;
@@ -204,42 +276,74 @@ export class MemStorage implements IStorage {
     return updatedAgent;
   }
 
+  /**
+   * Deletes a user-created prompt agent. Default agents are protected and ignored.
+   * @param id - The agent's UUID.
+   */
   async deleteAgent(id: string): Promise<void> {
-    // Don't allow deleting default agents
+    // Default agents are read-only; skip silently if the caller tries to delete one
     const agent = this.agents.get(id);
     if (agent && !agent.isDefault) {
       this.agents.delete(id);
     }
   }
 
-  // Support Ticket methods
+  // ─── Support Ticket methods ───────────────────────────────────────────────────
+
+  /**
+   * Returns all support tickets sorted newest-first.
+   * @returns Array of all SupportTicket records.
+   */
   async getAllTickets(): Promise<SupportTicket[]> {
     return Array.from(this.tickets.values()).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
+  /**
+   * Retrieves a support ticket by its string ID.
+   * @param id - The ticket's string ID (e.g. "ticket-<uuid>").
+   * @returns The matching SupportTicket, or undefined if not found.
+   */
   async getTicket(id: string): Promise<SupportTicket | undefined> {
     return this.tickets.get(id);
   }
 
+  /**
+   * Returns all tickets with a specific status, sorted newest-first.
+   * @param status - The ticket status to filter by.
+   * @returns Filtered and sorted array of SupportTicket records.
+   */
   async getTicketsByStatus(status: TicketStatus): Promise<SupportTicket[]> {
     return Array.from(this.tickets.values())
       .filter((ticket) => ticket.status === status)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
+  /**
+   * Returns all tickets assigned to a specific support agent, sorted newest-first.
+   * @param agentId - The support agent's string ID.
+   * @returns Filtered and sorted array of SupportTicket records.
+   */
   async getTicketsByAgent(agentId: string): Promise<SupportTicket[]> {
     return Array.from(this.tickets.values())
       .filter((ticket) => ticket.assignedAgentId === agentId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
+  /**
+   * Creates and persists a new support ticket with a generated ID and computed SLA deadline.
+   * SLA windows by priority: urgent = 1 h, high = 4 h, medium = 24 h, low = 72 h.
+   * If the total ticket count exceeds MAX_TICKETS the oldest resolved/closed ticket is pruned.
+   * @param ticketData - Fields required to create the ticket.
+   * @returns The newly created SupportTicket.
+   */
   async createTicket(ticketData: InsertSupportTicket): Promise<SupportTicket> {
     const id = `ticket-${randomUUID()}`;
     const now = new Date();
-    const slaHours = ticketData.priority === 'urgent' ? 1 : 
-                     ticketData.priority === 'high' ? 4 : 
+    // SLA deadline windows in hours, keyed by priority level
+    const slaHours = ticketData.priority === 'urgent' ? 1 :
+                     ticketData.priority === 'high' ? 4 :
                      ticketData.priority === 'medium' ? 24 : 72;
     
     const ticket: SupportTicket = {
@@ -280,6 +384,12 @@ export class MemStorage implements IStorage {
     return ticket;
   }
 
+  /**
+   * Applies a partial update to a support ticket and stamps updatedAt.
+   * @param id - The ticket's string ID.
+   * @param updates - Partial SupportTicket fields to merge in.
+   * @returns The updated SupportTicket, or undefined if not found.
+   */
   async updateTicket(id: string, updates: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
     const ticket = this.tickets.get(id);
     if (!ticket) return undefined;
@@ -288,9 +398,13 @@ export class MemStorage implements IStorage {
     return updatedTicket;
   }
 
+  /**
+   * Deletes a support ticket and all of its associated messages.
+   * @param id - The ticket's string ID.
+   */
   async deleteTicket(id: string): Promise<void> {
     this.tickets.delete(id);
-    // Also delete associated messages
+    // Cascade-delete all messages belonging to this ticket
     for (const [msgId, msg] of this.ticketMessages) {
       if (msg.ticketId === id) {
         this.ticketMessages.delete(msgId);
@@ -298,13 +412,24 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // Ticket Message methods
+  // ─── Ticket Message methods ───────────────────────────────────────────────────
+
+  /**
+   * Returns all messages for a ticket sorted oldest-first.
+   * @param ticketId - The parent ticket's string ID.
+   * @returns Chronologically ordered array of TicketMessage records.
+   */
   async getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
     return Array.from(this.ticketMessages.values())
       .filter((msg) => msg.ticketId === ticketId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
+  /**
+   * Persists a new message on a support ticket thread.
+   * @param messageData - Fields required to create the ticket message.
+   * @returns The newly created TicketMessage including its generated id.
+   */
   async createTicketMessage(messageData: InsertTicketMessage): Promise<TicketMessage> {
     const id = `msg-${randomUUID()}`;
     const message: TicketMessage = {
@@ -320,31 +445,52 @@ export class MemStorage implements IStorage {
     return message;
   }
 
-  // Support Agent methods
+  // ─── Support Agent methods ────────────────────────────────────────────────────
+
+  /**
+   * Returns all support agents.
+   * @returns Array of all SupportAgent records.
+   */
   async getAllSupportAgents(): Promise<SupportAgent[]> {
     return Array.from(this.supportAgents.values());
   }
 
+  /**
+   * Retrieves a support agent by their string ID.
+   * @param id - The support agent's string ID (e.g. "support-<uuid>").
+   * @returns The matching SupportAgent, or undefined if not found.
+   */
   async getSupportAgent(id: string): Promise<SupportAgent | undefined> {
     return this.supportAgents.get(id);
   }
 
+  /**
+   * Returns available agents who have the given category skill and capacity,
+   * sorted by current workload ratio (least loaded first).
+   * @param category - The ticket category to match against agent skills.
+   * @returns Filtered and sorted array of available SupportAgent records.
+   */
   async getAvailableAgentsForCategory(category: TicketCategory): Promise<SupportAgent[]> {
     return Array.from(this.supportAgents.values())
-      .filter((agent) => 
-        agent.isAvailable && 
-        agent.isOnline && 
+      .filter((agent) =>
+        agent.isAvailable &&
+        agent.isOnline &&
         agent.skills.includes(category) &&
         agent.currentTicketCount < agent.maxTickets
       )
       .sort((a, b) => {
-        // Sort by workload (current tickets / max tickets ratio)
+        // Sort ascending by workload ratio so the least-loaded agent is first
         const workloadA = a.currentTicketCount / a.maxTickets;
         const workloadB = b.currentTicketCount / b.maxTickets;
         return workloadA - workloadB;
       });
   }
 
+  /**
+   * Creates and persists a new support agent with a generated ID and default metrics.
+   * @param agentData - Fields required to create the agent.
+   * @returns The newly created SupportAgent.
+   */
   async createSupportAgent(agentData: InsertSupportAgent): Promise<SupportAgent> {
     const id = `support-${randomUUID()}`;
     const agent: SupportAgent = {
@@ -364,6 +510,12 @@ export class MemStorage implements IStorage {
     return agent;
   }
 
+  /**
+   * Applies a partial update to a support agent's record.
+   * @param id - The support agent's string ID.
+   * @param updates - Partial SupportAgent fields to merge in.
+   * @returns The updated SupportAgent, or undefined if not found.
+   */
   async updateSupportAgent(id: string, updates: Partial<SupportAgent>): Promise<SupportAgent | undefined> {
     const agent = this.supportAgents.get(id);
     if (!agent) return undefined;
@@ -372,15 +524,28 @@ export class MemStorage implements IStorage {
     return updatedAgent;
   }
 
+  /**
+   * Deletes a support agent by their string ID.
+   * @param id - The support agent's string ID.
+   */
   async deleteSupportAgent(id: string): Promise<void> {
     this.supportAgents.delete(id);
   }
 
-  // Escalation Rule methods
+  // ─── Escalation Rule methods ──────────────────────────────────────────────────
+
+  /**
+   * Returns all escalation rules regardless of active status.
+   * @returns Array of all EscalationRule records.
+   */
   async getAllEscalationRules(): Promise<EscalationRule[]> {
     return Array.from(this.escalationRules.values());
   }
 
+  /**
+   * Returns only the escalation rules that are currently active.
+   * @returns Array of active EscalationRule records.
+   */
   async getActiveEscalationRules(): Promise<EscalationRule[]> {
     return Array.from(this.escalationRules.values()).filter((rule) => rule.isActive);
   }
