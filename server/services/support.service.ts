@@ -8,10 +8,15 @@ import type {
   SupportAgent,
 } from "@shared/schema";
 
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-  timeout: 30_000,
-});
+let _groq: OpenAI | null = null;
+/** Returns the Groq client (OpenAI-compatible) for ticket analysis calls, throwing if the key is absent. */
+function getGroq(): OpenAI {
+  if (!_groq) {
+    if (!env.GROQ_API_KEY) throw new Error("GROQ_API_KEY is required for support ticket AI analysis");
+    _groq = new OpenAI({ apiKey: env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1", timeout: 30_000 });
+  }
+  return _groq;
+}
 
 export interface TicketAnalysis {
   category: TicketCategory;
@@ -65,14 +70,14 @@ Respond in JSON format with these exact fields:
 }`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await getGroq().chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Subject: ${subject}\n\nDescription: ${description}` },
       ],
       response_format: { type: "json_object" },
-      max_completion_tokens: 1024,
+      max_tokens: 1024,
     });
 
     const content = response.choices[0]?.message?.content;
@@ -138,10 +143,10 @@ Guidelines:
   });
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await getGroq().chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages,
-      max_completion_tokens: 1024,
+      max_tokens: 1024,
     });
 
     return (

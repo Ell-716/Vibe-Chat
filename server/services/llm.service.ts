@@ -6,23 +6,48 @@ import type { MCPTool } from "@shared/schema";
 import { env } from "../config/env";
 import { buildOpenAITools, handleToolCall } from "./mcp.service";
 
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-  timeout: 30_000,
-});
+// Lazy singletons — clients are created on first use so the server starts
+// without errors even when optional provider keys are absent.
 
-const groq = new OpenAI({
-  apiKey: env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-  timeout: 30_000,
-});
+let _openai: OpenAI | null = null;
+/** Returns the OpenAI client, throwing a clear error if the key is missing. */
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    _openai = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 30_000 });
+  }
+  return _openai;
+}
 
-const anthropic = new Anthropic({
-  apiKey: env.ANTHROPIC_API_KEY,
-  timeout: 30_000,
-});
+let _groq: OpenAI | null = null;
+/** Returns the Groq client, throwing a clear error if the key is missing. */
+function getGroq(): OpenAI {
+  if (!_groq) {
+    if (!env.GROQ_API_KEY) throw new Error("GROQ_API_KEY is not configured");
+    _groq = new OpenAI({ apiKey: env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1", timeout: 30_000 });
+  }
+  return _groq;
+}
 
-const genAI = new GoogleGenerativeAI(env.GOOGLE_GEMINI_API_KEY || "");
+let _anthropic: Anthropic | null = null;
+/** Returns the Anthropic client, throwing a clear error if the key is missing. */
+function getAnthropic(): Anthropic {
+  if (!_anthropic) {
+    if (!env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    _anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 30_000 });
+  }
+  return _anthropic;
+}
+
+let _genAI: GoogleGenerativeAI | null = null;
+/** Returns the Google Generative AI client, throwing a clear error if the key is missing. */
+function getGenAI(): GoogleGenerativeAI {
+  if (!_genAI) {
+    if (!env.GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    _genAI = new GoogleGenerativeAI(env.GOOGLE_GEMINI_API_KEY);
+  }
+  return _genAI;
+}
 
 export type AIModel = "gpt-4o-mini" | "groq-llama" | "claude-sonnet" | "gemini-flash";
 
@@ -106,7 +131,7 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await groq.chat.completions.create({
+    const response = await getGroq().chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
       max_tokens: 2048,
@@ -122,7 +147,7 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2048,
       system: systemPrompt,
@@ -136,7 +161,7 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
   }
 
   if (model === "gemini-flash") {
-    const geminiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const geminiModel = getGenAI().getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Gemini requires history without the last message, which is sent separately
     const chatHistory = messages.slice(0, -1).map((m) => ({
@@ -171,7 +196,7 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
   let continueLoop = true;
 
   while (continueLoop) {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: allMessages,
       tools,

@@ -2,10 +2,15 @@ import { Client, GatewayIntentBits, type Message, Events } from "discord.js";
 import OpenAI from "openai";
 import { env } from "../config/env";
 
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-  timeout: 30_000,
-});
+let _groq: OpenAI | null = null;
+/** Returns the Groq client (OpenAI-compatible) for Discord AI responses, throwing if the key is absent. */
+function getGroq(): OpenAI {
+  if (!_groq) {
+    if (!env.GROQ_API_KEY) throw new Error("GROQ_API_KEY is required for Discord AI responses");
+    _groq = new OpenAI({ apiKey: env.GROQ_API_KEY, baseURL: "https://api.groq.com/openai/v1", timeout: 30_000 });
+  }
+  return _groq;
+}
 
 const client = new Client({
   intents: [
@@ -44,8 +49,8 @@ async function generateAIResponse(userId: string, userMessage: string): Promise<
       history = history.slice(-MAX_HISTORY * 2);
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const response = await getGroq().chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
         {
           role: "system",

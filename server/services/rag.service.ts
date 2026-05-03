@@ -1,18 +1,10 @@
-import OpenAI from "openai";
 import { PDFParse } from "pdf-parse";
-import { env } from "../config/env";
-
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-  timeout: 30_000,
-});
 
 interface DocumentChunk {
   id: string;
   documentId: string;
   documentName: string;
   content: string;
-  embedding: number[];
   chunkIndex: number;
 }
 
@@ -27,11 +19,11 @@ export interface RAGDocument {
 /** In-memory store of all processed documents. */
 const documents: Map<string, RAGDocument> = new Map();
 
-/** Flat array of all embedded chunks across all documents. */
+/** Flat array of all text chunks across all documents. */
 const chunks: DocumentChunk[] = [];
 
 /**
- * Splits a body of text into overlapping chunks suitable for embedding.
+ * Splits a body of text into overlapping chunks suitable for retrieval.
  * Splits on sentence boundaries where possible to preserve semantic coherence.
  * @param text - The full text to split.
  * @param chunkSize - Maximum character length per chunk. Defaults to 1000.
@@ -63,40 +55,50 @@ function splitTextIntoChunks(text: string, chunkSize = 1000, overlap = 200): str
 }
 
 /**
- * Generates a vector embedding for a text string using OpenAI's text-embedding-3-small model.
- * @param text - The text to embed.
- * @returns A numeric embedding vector.
+ * Lowercases and strips punctuation from a string, returning an array of tokens.
+ * Filters out tokens shorter than 3 characters to reduce noise.
+ * @param text - Raw text to tokenize.
+ * @returns Array of lowercase word tokens.
  */
-async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: text,
-  });
-  return response.data[0].embedding;
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
 }
 
 /**
- * Computes cosine similarity between two embedding vectors.
- * @param a - First embedding vector.
- * @param b - Second embedding vector.
- * @returns Similarity score in the range [-1, 1].
+ * Computes a TF-IDF-style relevance score between a query and a document chunk.
+ * Scores by summing the term frequency of each query token within the chunk.
+ * @param queryTerms - Pre-tokenized query terms.
+ * @param docContent - The raw chunk text to score against.
+ * @returns A non-negative relevance score; higher means more relevant.
  */
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
+function tfidfScore(queryTerms: string[], docContent: string): number {
+  const docTerms = tokenize(docContent);
+  if (docTerms.length === 0) return 0;
+
+  // Build a frequency map for the document terms
+  const termFreq = new Map<string, number>();
+  for (const term of docTerms) {
+    termFreq.set(term, (termFreq.get(term) || 0) + 1);
   }
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+
+  let score = 0;
+  for (const term of queryTerms) {
+    const freq = termFreq.get(term) || 0;
+    if (freq > 0) {
+      // Normalize by document length so longer chunks don't automatically score higher
+      score += freq / docTerms.length;
+    }
+  }
+  return score;
 }
 
 /**
- * Parses a PDF buffer, splits the extracted text into chunks, generates embeddings
- * for each chunk, and stores everything in memory for later retrieval.
- * A 100ms delay is applied between chunk embeddings to avoid rate-limit errors.
+ * Parses a PDF buffer, splits the extracted text into chunks, and stores them
+ * in memory for later keyword-based retrieval. No external API calls are made.
  * @param buffer - Raw PDF file bytes.
  * @param filename - Original file name, used as the document display name.
  * @returns Metadata about the processed document.
@@ -115,28 +117,13 @@ export async function processDocument(buffer: Buffer, filename: string): Promise
   console.log(`Processing "${filename}": ${totalPages} pages, ${textChunks.length} chunks`);
 
   for (let i = 0; i < textChunks.length; i++) {
-    try {
-      const embedding = await generateEmbedding(textChunks[i]);
-      chunks.push({
-        id: `${documentId}-chunk-${i}`,
-        documentId,
-        documentName: filename,
-        content: textChunks[i],
-        embedding,
-        chunkIndex: i,
-      });
-
-      if (i % 10 === 0) {
-        console.log(`  Embedded chunk ${i + 1}/${textChunks.length}`);
-      }
-
-      // Throttle requests to stay within OpenAI rate limits
-      if (i < textChunks.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    } catch (error) {
-      console.error(`Failed to embed chunk ${i}:`, error);
-    }
+    chunks.push({
+      id: `${documentId}-chunk-${i}`,
+      documentId,
+      documentName: filename,
+      content: textChunks[i],
+      chunkIndex: i,
+    });
   }
 
   const doc: RAGDocument = {
@@ -148,14 +135,13 @@ export async function processDocument(buffer: Buffer, filename: string): Promise
   };
 
   documents.set(documentId, doc);
-  console.log(`Document "${filename}" processed: ${textChunks.length} chunks embedded`);
+  console.log(`Document "${filename}" processed: ${textChunks.length} chunks indexed`);
   return doc;
 }
 
 /**
- * Retrieves the most semantically relevant document chunks for a given query.
- * Embeds the query and ranks all stored chunks by cosine similarity.
- * Returns an empty string if no documents are loaded or no chunk exceeds the similarity threshold.
+ * Retrieves the most relevant document chunks for a given query using TF-IDF scoring.
+ * Returns an empty string if no documents are loaded or no chunk scores above zero.
  * @param query - The user's message or search query.
  * @param topK - Maximum number of chunks to return. Defaults to 5.
  * @returns A formatted context string to inject into the system prompt, or empty string.
@@ -163,27 +149,24 @@ export async function processDocument(buffer: Buffer, filename: string): Promise
 export async function retrieveContext(query: string, topK = 5): Promise<string> {
   if (chunks.length === 0) return "";
 
-  try {
-    const queryEmbedding = await generateEmbedding(query);
+  const queryTerms = tokenize(query);
+  if (queryTerms.length === 0) return "";
 
-    const scored = chunks.map((chunk) => ({
-      chunk,
-      score: cosineSimilarity(queryEmbedding, chunk.embedding),
-    }));
+  const scored = chunks.map((chunk) => ({
+    chunk,
+    score: tfidfScore(queryTerms, chunk.content),
+  }));
 
-    scored.sort((a, b) => b.score - a.score);
-    const topChunks = scored.slice(0, topK);
+  scored.sort((a, b) => b.score - a.score);
 
-    // Discard results below the relevance threshold to avoid injecting noise
-    if (topChunks.length === 0 || topChunks[0].score < 0.3) return "";
+  // Only keep chunks that actually matched at least one query term
+  const topChunks = scored.slice(0, topK).filter((item) => item.score > 0);
 
-    return topChunks
-      .map((item) => `[From: ${item.chunk.documentName}]\n${item.chunk.content}`)
-      .join("\n\n---\n\n");
-  } catch (error) {
-    console.error("RAG retrieval error:", error);
-    return "";
-  }
+  if (topChunks.length === 0) return "";
+
+  return topChunks
+    .map((item) => `[From: ${item.chunk.documentName}]\n${item.chunk.content}`)
+    .join("\n\n---\n\n");
 }
 
 /**

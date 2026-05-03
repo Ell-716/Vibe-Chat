@@ -1,9 +1,15 @@
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import { env } from "../config/env";
 
-const elevenlabs = new ElevenLabsClient({
-  apiKey: env.ELEVENLABS_API_KEY,
-});
+let _elevenlabs: ElevenLabsClient | null = null;
+/** Returns the ElevenLabs client, throwing if the API key is absent. */
+function getElevenLabs(): ElevenLabsClient {
+  if (!_elevenlabs) {
+    if (!env.ELEVENLABS_API_KEY) throw new Error("ELEVENLABS_API_KEY is required for voice features");
+    _elevenlabs = new ElevenLabsClient({ apiKey: env.ELEVENLABS_API_KEY });
+  }
+  return _elevenlabs;
+}
 
 /**
  * Strips markdown and tool-status annotations from a string so that only
@@ -35,7 +41,7 @@ export async function textToSpeechStream(
   text: string,
   voiceId = "21m00Tcm4TlvDq8ikWAM"
 ): Promise<ReadableStream<Uint8Array>> {
-  return elevenlabs.textToSpeech.convert(voiceId, {
+  return getElevenLabs().textToSpeech.convert(voiceId, {
     text: text.substring(0, 5000),
     modelId: "eleven_multilingual_v2",
   });
@@ -46,7 +52,7 @@ export async function textToSpeechStream(
  * @returns The raw voices response from the ElevenLabs API.
  */
 export async function getVoices() {
-  return elevenlabs.voices.getAll();
+  return getElevenLabs().voices.getAll();
 }
 
 /**
@@ -58,7 +64,7 @@ export async function getVoices() {
 export async function speechToText(audioBuffer: Buffer): Promise<string> {
   const audioBlob = new Blob([audioBuffer], { type: "audio/webm" });
 
-  const transcription = await elevenlabs.speechToText.convert({
+  const transcription = await getElevenLabs().speechToText.convert({
     file: audioBlob,
     modelId: "scribe_v1",
   });
