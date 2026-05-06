@@ -1,5 +1,5 @@
-import { 
-  type User, type InsertUser, type Conversation, type InsertConversation, 
+import {
+  type User, type InsertUser, type Conversation, type InsertConversation,
   type Message, type InsertMessage, type Agent, defaultAgents,
   type SupportTicket, type TicketMessage, type SupportAgent, type EscalationRule,
   type InsertSupportTicket, type InsertTicketMessage, type InsertSupportAgent,
@@ -7,6 +7,8 @@ import {
   defaultSupportAgents, defaultEscalationRules
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { env } from "./config/env";
+import { DatabaseStorage } from "./storage.db";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -551,4 +553,11 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+/**
+ * Active storage instance.
+ * Uses DatabaseStorage when DATABASE_URL is configured; falls back to
+ * MemStorage for local development without a database.
+ */
+export const storage: IStorage = env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new MemStorage();

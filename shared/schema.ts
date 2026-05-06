@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -265,3 +265,82 @@ export const defaultEscalationRules: EscalationRule[] = [
     isActive: true,
   },
 ];
+
+// ─── Drizzle table definitions for persistent entities ────────────────────────
+
+export const agents = pgTable("agents", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  icon: text("icon").notNull(),
+  isDefault: boolean("is_default").default(false),
+});
+
+export const documents = pgTable("documents", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  uploadedAt: timestamp("uploaded_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  chunkCount: integer("chunk_count").notNull().default(0),
+  totalPages: integer("total_pages").notNull().default(0),
+});
+
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey(),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  priority: text("priority").notNull(),
+  status: text("status").notNull(),
+  customerId: varchar("customer_id").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerName: text("customer_name").notNull(),
+  assignedAgentId: varchar("assigned_agent_id"),
+  aiSuggestedCategory: text("ai_suggested_category"),
+  aiSuggestedPriority: text("ai_suggested_priority"),
+  aiSummary: text("ai_summary"),
+  aiSuggestedResponse: text("ai_suggested_response"),
+  escalationReason: text("escalation_reason"),
+  escalationLevel: integer("escalation_level").notNull().default(0),
+  slaDeadline: timestamp("sla_deadline"),
+  firstResponseAt: timestamp("first_response_at"),
+  resolvedAt: timestamp("resolved_at"),
+  tags: jsonb("tags").notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const ticketMessages = pgTable("ticket_messages", {
+  id: varchar("id").primaryKey(),
+  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id").notNull(),
+  senderType: text("sender_type").notNull(),
+  content: text("content").notNull(),
+  isInternal: boolean("is_internal").notNull().default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const supportAgents = pgTable("support_agents", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  skills: jsonb("skills").notNull().default(sql`'[]'::jsonb`),
+  maxTickets: integer("max_tickets").notNull().default(10),
+  currentTicketCount: integer("current_ticket_count").notNull().default(0),
+  isAvailable: boolean("is_available").notNull().default(true),
+  isOnline: boolean("is_online").notNull().default(false),
+  averageResponseTime: real("average_response_time").notNull().default(0),
+  satisfactionScore: real("satisfaction_score").notNull().default(5.0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const escalationRules = pgTable("escalation_rules", {
+  id: varchar("id").primaryKey(),
+  name: text("name").notNull(),
+  priority: text("priority").notNull(),
+  category: text("category"),
+  triggerAfterMinutes: integer("trigger_after_minutes").notNull(),
+  escalateToLevel: integer("escalate_to_level").notNull(),
+  notifyManagement: boolean("notify_management").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+});
