@@ -35,4 +35,11 @@ export const env = {
 
   // ── Database ──────────────────────────────────────────────────────────────
   DATABASE_URL: process.env.DATABASE_URL as string | undefined,
+
+  // ── Google OAuth ──────────────────────────────────────────────────────────
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID as string | undefined,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET as string | undefined,
+
+  // ── App URL (used for OAuth callback construction) ────────────────────────
+  APP_URL: process.env.APP_URL || "http://localhost:5000",
 } as const;

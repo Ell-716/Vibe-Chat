@@ -1,12 +1,37 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import MemoryStore from "memorystore";
+import passport from "./config/passport";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startDiscordBot } from "./services/discord.service";
+import { env } from "./config/env";
 
 const app = express();
 const httpServer = createServer(app);
+
+const MemoryStoreSession = MemoryStore(session);
+
+app.use(
+  session({
+    secret: env.SESSION_SECRET ?? "dev-fallback-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+    store: new MemoryStoreSession({
+      checkPeriod: 86_400_000, // prune expired sessions every 24 h
+    }),
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 declare module "http" {
   interface IncomingMessage {

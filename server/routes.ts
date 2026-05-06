@@ -4,9 +4,13 @@ import * as chatController from "./controllers/chat.controller";
 import * as agentController from "./controllers/agent.controller";
 import * as ragController from "./controllers/rag.controller";
 import * as supportController from "./controllers/support.controller";
+import * as authController from "./controllers/auth.controller";
+import { requireAuth } from "./middleware/requireAuth";
 
 /**
  * Registers all application routes on the Express app.
+ * Auth routes are mounted first (no authentication required).
+ * All /api routes are protected by requireAuth middleware.
  * This file contains only route declarations — all request handling
  * and business logic lives in controllers/ and services/.
  * @param httpServer - The underlying HTTP server (returned unchanged).
@@ -14,6 +18,19 @@ import * as supportController from "./controllers/support.controller";
  * @returns The HTTP server, for chaining in index.ts.
  */
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // ── Auth (public — no requireAuth) ────────────────────────────────────────
+  app.get("/auth/google", authController.initiateGoogleAuth);
+  app.get(
+    "/auth/google/callback",
+    authController.googleCallback,
+    authController.googleCallbackSuccess
+  );
+  app.post("/auth/logout", authController.logout);
+  app.get("/auth/me", authController.getMe);
+
+  // ── Protect all /api routes ───────────────────────────────────────────────
+  app.use("/api", requireAuth);
+
   // ── Conversations ──────────────────────────────────────────────────────────
   app.get("/api/conversations", chatController.getConversations);
   app.get("/api/conversations/:id", chatController.getConversation);
