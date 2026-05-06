@@ -1,17 +1,23 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: uuid("id").primaryKey().defaultRandom(),
+  googleId: text("google_id").notNull().unique(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+  googleId: true,
+  email: true,
+  name: true,
+  avatar: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -20,6 +26,7 @@ export type User = typeof users.$inferSelect;
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -280,6 +287,7 @@ export const agents = pgTable("agents", {
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey(),
   name: text("name").notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   uploadedAt: timestamp("uploaded_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   chunkCount: integer("chunk_count").notNull().default(0),
   totalPages: integer("total_pages").notNull().default(0),
@@ -344,3 +352,24 @@ export const escalationRules = pgTable("escalation_rules", {
   notifyManagement: boolean("notify_management").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
 });
+
+// ─── Drizzle relations ────────────────────────────────────────────────────────
+
+export const usersRelations = relations(users, ({ many }) => ({
+  conversations: many(conversations),
+  documents: many(documents),
+}));
+
+export const conversationsRelations = relations(conversations, ({ one }) => ({
+  user: one(users, {
+    fields: [conversations.userId],
+    references: [users.id],
+  }),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  user: one(users, {
+    fields: [documents.userId],
+    references: [users.id],
+  }),
+}));

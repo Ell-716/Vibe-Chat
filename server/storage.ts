@@ -12,8 +12,10 @@ import { DatabaseStorage } from "./storage.db";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
   getConversation(id: number): Promise<Conversation | undefined>;
   getAllConversations(): Promise<Conversation[]>;
   createConversation(title: string): Promise<Conversation>;
@@ -116,26 +118,54 @@ export class MemStorage implements IStorage {
   }
 
   /**
-   * Retrieves a user by username (case-sensitive).
-   * @param username - The username to look up.
+   * Retrieves a user by their Google OAuth ID.
+   * @param googleId - The Google account ID string.
    * @returns The matching User, or undefined if not found.
    */
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find((u) => u.googleId === googleId);
+  }
+
+  /**
+   * Retrieves a user by their email address.
+   * @param email - The email address to look up.
+   * @returns The matching User, or undefined if not found.
+   */
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find((u) => u.email === email);
   }
 
   /**
    * Creates and persists a new user with a generated UUID.
-   * @param insertUser - User fields (username, password hash, etc.).
-   * @returns The newly created User including its generated id.
+   * @param insertUser - User fields (googleId, email, name, avatar).
+   * @returns The newly created User including its generated id and timestamps.
    */
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const now = new Date();
+    const user: User = {
+      ...insertUser,
+      id,
+      avatar: insertUser.avatar ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.users.set(id, user);
     return user;
+  }
+
+  /**
+   * Applies a partial update to a user record and stamps updatedAt.
+   * @param id - The user's UUID.
+   * @param data - Partial User fields to merge in.
+   * @returns The updated User, or undefined if not found.
+   */
+  async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updated: User = { ...user, ...data, id, updatedAt: new Date() };
+    this.users.set(id, updated);
+    return updated;
   }
 
   /**
@@ -162,6 +192,7 @@ export class MemStorage implements IStorage {
     const conversation: Conversation = {
       id,
       title,
+      userId: null,
       createdAt: new Date(),
     };
     this.conversations.set(id, conversation);

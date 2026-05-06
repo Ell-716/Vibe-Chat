@@ -226,25 +226,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   /**
-   * Retrieves a user by username.
-   * @param username - The username to look up.
+   * Retrieves a user by their Google OAuth ID.
+   * @param googleId - The Google account ID string.
    * @returns The matching User, or undefined if not found.
    */
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
     const [row] = await db
       .select()
       .from(users)
-      .where(eq(users.username, username));
+      .where(eq(users.googleId, googleId));
+    return row;
+  }
+
+  /**
+   * Retrieves a user by their email address.
+   * @param email - The email address to look up.
+   * @returns The matching User, or undefined if not found.
+   */
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [row] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
     return row;
   }
 
   /**
    * Creates and persists a new user.
-   * @param insertUser - User fields (username, password hash).
-   * @returns The newly created User including its generated id.
+   * @param insertUser - User fields (googleId, email, name, avatar).
+   * @returns The newly created User including its generated id and timestamps.
    */
   async createUser(insertUser: InsertUser): Promise<User> {
     const [row] = await db.insert(users).values(insertUser).returning();
+    return row;
+  }
+
+  /**
+   * Applies a partial update to a user record and stamps updatedAt.
+   * @param id - The user's UUID.
+   * @param data - Partial User fields to merge in.
+   * @returns The updated User, or undefined if not found.
+   */
+  async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
+    const [row] = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
     return row;
   }
 
