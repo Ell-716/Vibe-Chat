@@ -20,7 +20,7 @@ import type { MCPTool } from "@shared/schema";
  */
 export async function getConversations(req: Request, res: Response): Promise<void> {
   try {
-    const conversations = await storage.getAllConversations();
+    const conversations = await storage.getAllConversations(req.user!.id);
     res.json(conversations);
   } catch (error) {
     console.error("Error fetching conversations:", error);
@@ -40,9 +40,13 @@ export async function getConversation(req: Request, res: Response): Promise<void
       res.status(404).json({ error: "Conversation not found" });
       return;
     }
-    const messages = await storage.getMessagesByConversation(id);
+    const messages = await storage.getMessagesByConversation(id, req.user!.id);
     res.json({ ...conversation, messages });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.statusCode === 403) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
     console.error("Error fetching conversation:", error);
     res.status(500).json({ error: "Failed to fetch conversation" });
   }
@@ -56,7 +60,7 @@ export async function getConversation(req: Request, res: Response): Promise<void
 export async function createConversation(req: Request, res: Response): Promise<void> {
   try {
     const { title } = req.body;
-    const conversation = await storage.createConversation(title || "New Chat");
+    const conversation = await storage.createConversation(title || "New Chat", req.user!.id);
     res.status(201).json(conversation);
   } catch (error) {
     console.error("Error creating conversation:", error);
@@ -137,7 +141,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
     // Fetch conversation history, agent prompt, and RAG context in parallel —
     // all three are independent of each other once the user message is saved
     const [messages, agentResult, ragContext] = await Promise.all([
-      storage.getMessagesByConversation(conversationId),
+      storage.getMessagesByConversation(conversationId, req.user!.id),
       agentId ? storage.getAgent(agentId) : Promise.resolve(undefined),
       hasDocuments() ? retrieveContext(content) : Promise.resolve(""),
     ]);
@@ -171,12 +175,13 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending message:", error);
-    // Headers may already be flushed if the error occurred mid-stream
     if (res.headersSent) {
       res.write(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`);
       res.end();
+    } else if (error?.statusCode === 403) {
+      res.status(403).json({ error: "Forbidden" });
     } else {
       res.status(500).json({ error: "Failed to send message" });
     }

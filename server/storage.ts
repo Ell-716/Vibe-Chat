@@ -17,11 +17,12 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
   getConversation(id: number): Promise<Conversation | undefined>;
-  getAllConversations(): Promise<Conversation[]>;
-  createConversation(title: string): Promise<Conversation>;
+  getAllConversations(userId: string): Promise<Conversation[]>;
+  createConversation(title: string, userId: string): Promise<Conversation>;
   updateConversationTitle(id: number, title: string): Promise<Conversation | undefined>;
   deleteConversation(id: number): Promise<void>;
-  getMessagesByConversation(conversationId: number): Promise<Message[]>;
+  /** Throws a 403 error (statusCode: 403) if the conversation doesn't belong to userId. */
+  getMessagesByConversation(conversationId: number, userId: string): Promise<Message[]>;
   createMessage(conversationId: number, role: string, content: string): Promise<Message>;
   getAllAgents(): Promise<Agent[]>;
   getAgent(id: string): Promise<Agent | undefined>;
@@ -178,21 +179,22 @@ export class MemStorage implements IStorage {
   }
 
   /**
-   * Returns all conversations sorted newest-first.
-   * @returns Array of all Conversation records.
+   * Returns all conversations owned by the given user, sorted newest-first.
+   * @param userId - The authenticated user's UUID.
+   * @returns Array of Conversation records belonging to userId.
    */
-  async getAllConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  async getAllConversations(userId: string): Promise<Conversation[]> {
+    return Array.from(this.conversations.values())
+      .filter((c) => c.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  async createConversation(title: string): Promise<Conversation> {
+  async createConversation(title: string, userId: string): Promise<Conversation> {
     const id = this.conversationIdCounter++;
     const conversation: Conversation = {
       id,
       title,
-      userId: null,
+      userId,
       createdAt: new Date(),
     };
     this.conversations.set(id, conversation);
@@ -237,10 +239,18 @@ export class MemStorage implements IStorage {
 
   /**
    * Returns all messages for a conversation sorted oldest-first.
+   * Throws a 403 error (statusCode: 403) if the conversation doesn't belong to userId.
    * @param conversationId - The parent conversation's integer ID.
+   * @param userId - The authenticated user's UUID.
    * @returns Chronologically ordered array of Message records.
    */
-  async getMessagesByConversation(conversationId: number): Promise<Message[]> {
+  async getMessagesByConversation(conversationId: number, userId: string): Promise<Message[]> {
+    const conversation = this.conversations.get(conversationId);
+    if (!conversation || conversation.userId !== userId) {
+      const err = new Error("Forbidden") as Error & { statusCode: number };
+      err.statusCode = 403;
+      throw err;
+    }
     return Array.from(this.messages.values())
       .filter((msg) => msg.conversationId === conversationId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());

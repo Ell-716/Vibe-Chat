@@ -11,6 +11,7 @@ interface DocumentChunk {
 export interface RAGDocument {
   id: string;
   name: string;
+  userId: string;
   uploadedAt: string;
   chunkCount: number;
   totalPages: number;
@@ -103,7 +104,7 @@ function tfidfScore(queryTerms: string[], docContent: string): number {
  * @param filename - Original file name, used as the document display name.
  * @returns Metadata about the processed document.
  */
-export async function processDocument(buffer: Buffer, filename: string): Promise<RAGDocument> {
+export async function processDocument(buffer: Buffer, filename: string, userId: string): Promise<RAGDocument> {
   const parser = new PDFParse({ data: buffer });
   const info = await parser.getInfo();
   const textResult = await parser.getText();
@@ -129,6 +130,7 @@ export async function processDocument(buffer: Buffer, filename: string): Promise
   const doc: RAGDocument = {
     id: documentId,
     name: filename,
+    userId,
     uploadedAt: new Date().toISOString(),
     chunkCount: textChunks.length,
     totalPages,
@@ -170,20 +172,24 @@ export async function retrieveContext(query: string, topK = 5): Promise<string> 
 }
 
 /**
- * Returns metadata for all currently loaded documents.
- * @returns Array of RAGDocument metadata objects.
+ * Returns metadata for documents owned by the given user.
+ * @param userId - The authenticated user's UUID.
+ * @returns Array of RAGDocument metadata objects belonging to userId.
  */
-export function getDocuments(): RAGDocument[] {
-  return Array.from(documents.values());
+export function getDocuments(userId: string): RAGDocument[] {
+  return Array.from(documents.values()).filter((d) => d.userId === userId);
 }
 
 /**
  * Removes a document and all its associated chunks from memory.
+ * Returns false if the document doesn't exist or doesn't belong to userId.
  * @param documentId - The document ID to delete.
- * @returns True if the document existed and was deleted, false if not found.
+ * @param userId - The authenticated user's UUID.
+ * @returns True if the document existed, was owned by userId, and was deleted.
  */
-export function deleteDocument(documentId: string): boolean {
-  if (!documents.has(documentId)) return false;
+export function deleteDocument(documentId: string, userId: string): boolean {
+  const doc = documents.get(documentId);
+  if (!doc || doc.userId !== userId) return false;
 
   // Iterate in reverse to safely splice while looping
   for (let i = chunks.length - 1; i >= 0; i--) {

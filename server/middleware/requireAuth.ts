@@ -1,4 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
+import type { User } from "@shared/schema";
+
+// Ensure req.user is typed as our User throughout all controllers
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: User;
+  }
+}
 
 /**
  * Express middleware that enforces authentication on a route.

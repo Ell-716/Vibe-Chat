@@ -39,7 +39,7 @@ export async function uploadDocument(req: Request, res: Response): Promise<void>
       res.status(400).json({ error: "Only PDF files are supported" });
       return;
     }
-    const doc = await processDocument(req.file.buffer, req.file.originalname);
+    const doc = await processDocument(req.file.buffer, req.file.originalname, req.user!.id);
     res.json(doc);
   } catch (error) {
     console.error("Document upload error:", error);
@@ -52,15 +52,16 @@ export async function uploadDocument(req: Request, res: Response): Promise<void>
  * Returns metadata for all documents currently loaded in the RAG index.
  */
 export function listDocuments(req: Request, res: Response): void {
-  res.json(getDocuments());
+  res.json(getDocuments(req.user!.id));
 }
 
 /**
  * DELETE /api/documents/:id
  * Removes a document and all its embedded chunks from the in-memory RAG index.
+ * Returns 404 if the document doesn't exist or doesn't belong to the current user.
  */
 export function removeDocument(req: Request, res: Response): void {
-  const deleted = deleteDocument(req.params.id);
+  const deleted = deleteDocument(req.params.id, req.user!.id);
   if (deleted) {
     res.json({ success: true });
   } else {
@@ -73,7 +74,7 @@ export function removeDocument(req: Request, res: Response): void {
  * Lists all tools available from the Zapier MCP endpoint.
  * Returns an empty tools array with configured: false when Zapier is not set up.
  */
-export async function getMcpTools(req: Request, res: Response): Promise<void> {
+export async function getMcpTools(_req: Request, res: Response): Promise<void> {
   try {
     const tools = await listMCPTools();
     res.json({ tools, configured: !!env.ZAPIER_MCP_URL });

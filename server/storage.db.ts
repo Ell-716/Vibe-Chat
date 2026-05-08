@@ -292,22 +292,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   /**
-   * Returns all conversations sorted newest-first.
-   * @returns Array of all Conversation records.
+   * Returns all conversations owned by the given user, sorted newest-first.
+   * @param userId - The authenticated user's UUID.
+   * @returns Array of Conversation records belonging to userId.
    */
-  async getAllConversations(): Promise<Conversation[]> {
-    return db.select().from(conversations).orderBy(desc(conversations.createdAt));
+  async getAllConversations(userId: string): Promise<Conversation[]> {
+    return db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.userId, userId))
+      .orderBy(desc(conversations.createdAt));
   }
 
   /**
-   * Creates and persists a new conversation.
+   * Creates and persists a new conversation owned by the given user.
    * @param title - The conversation title.
+   * @param userId - The authenticated user's UUID.
    * @returns The newly created Conversation.
    */
-  async createConversation(title: string): Promise<Conversation> {
+  async createConversation(title: string, userId: string): Promise<Conversation> {
     const [row] = await db
       .insert(conversations)
-      .values({ title })
+      .values({ title, userId })
       .returning();
     return row;
   }
@@ -342,10 +348,23 @@ export class DatabaseStorage implements IStorage {
 
   /**
    * Returns all messages for a conversation sorted oldest-first.
+   * Throws a 403 error (statusCode: 403) if the conversation doesn't belong to userId.
    * @param conversationId - The parent conversation's integer ID.
+   * @param userId - The authenticated user's UUID.
    * @returns Chronologically ordered array of Message records.
    */
-  async getMessagesByConversation(conversationId: number): Promise<Message[]> {
+  async getMessagesByConversation(conversationId: number, userId: string): Promise<Message[]> {
+    const [convo] = await db
+      .select()
+      .from(conversations)
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)));
+
+    if (!convo) {
+      const err = new Error("Forbidden") as Error & { statusCode: number };
+      err.statusCode = 403;
+      throw err;
+    }
+
     return db
       .select()
       .from(messages)
