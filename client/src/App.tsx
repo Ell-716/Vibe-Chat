@@ -4,15 +4,32 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Loader2 } from "lucide-react";
 import ChatPage from "@/pages/chat";
 import SupportPage from "@/pages/support";
+import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
+import { useAuth } from "@/hooks/use-auth";
 
 /**
  * Wouter-based client-side router.
- * Maps "/" to ChatPage, "/support" to SupportPage, and all other paths to NotFound.
+ * Handles three explicit states:
+ *  1. isLoading — centered spinner while /auth/me resolves
+ *  2. unauthenticated — LoginPage (no API calls fired)
+ *  3. authenticated — normal app routes
  */
 function Router() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!user) return <LoginPage />;
+
   return (
     <Switch>
       <Route path="/" component={ChatPage} />
