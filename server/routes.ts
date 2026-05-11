@@ -18,6 +18,11 @@ import { requireAuth } from "./middleware/requireAuth";
  * @returns The HTTP server, for chaining in index.ts.
  */
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // ── Health check (public) ─────────────────────────────────────────────────
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date() });
+  });
+
   // ── Auth (public — no requireAuth) ────────────────────────────────────────
   app.get("/auth/google", authController.initiateGoogleAuth);
   app.get(
