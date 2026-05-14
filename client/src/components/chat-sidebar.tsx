@@ -127,10 +127,13 @@ export function ChatSidebar({
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid="button-home"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#00a896]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#06B6D4]">
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-sidebar-foreground">Vibe Chat</span>
+            <span className="text-lg font-semibold text-sidebar-foreground" style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em" }}>
+              <span style={{ color: "#06B6D4" }}>VIBE</span>{" "}
+              <span style={{ color: "#ffffff" }}>CHAT</span>
+            </span>
           </button>
           <Button
             variant="ghost"

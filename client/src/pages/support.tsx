@@ -47,7 +47,7 @@ const priorityColors: Record<TicketPriority, string> = {
 };
 
 const statusColors: Record<TicketStatus, string> = {
-  open: "bg-green-500",
+  open: "bg-cyan-500",
   in_progress: "bg-blue-500",
   pending_customer: "bg-yellow-500",
   escalated: "bg-red-500",
@@ -128,10 +128,13 @@ export default function SupportPage() {
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity mb-6"
             data-testid="button-back-to-chat"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#00a896]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#06B6D4]">
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-foreground">Vibe Chat</span>
+            <span className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em" }}>
+              <span style={{ color: "#06B6D4" }}>VIBE</span>{" "}
+              <span>CHAT</span>
+            </span>
           </button>
         </Link>
 
@@ -197,7 +200,7 @@ export default function SupportPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-green-500" />
+                <Users className="w-5 h-5 text-cyan-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Agents Online</p>
                   <p className="text-2xl font-bold" data-testid="text-agents-online">{stats?.agentsOnline || 0}/{stats?.totalAgents || 0}</p>
