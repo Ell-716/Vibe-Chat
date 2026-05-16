@@ -188,6 +188,14 @@ export async function startDiscordBot(): Promise<boolean> {
 }
 
 /**
+ * Destroys the Discord client connection, releasing the WebSocket and allowing
+ * the process to exit cleanly on SIGINT/SIGTERM.
+ */
+export function destroyDiscordClient(): void {
+  client.destroy();
+}
+
+/**
  * Returns the current connection status of the Discord bot.
  * @returns An object with connected flag and, if connected, username and server count.
  */
