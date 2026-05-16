@@ -236,15 +236,27 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
       )}
 
       <div
-        className={`
-          group relative max-w-[85%] rounded-2xl px-4 py-3
-          ${isUser 
-            ? "bg-primary text-primary-foreground" 
-            : "bg-card text-card-foreground"
-          }
-        `}
+        className="group relative text-[15px] leading-relaxed"
+        style={isUser ? {
+          maxWidth: "75%",
+          padding: "12px 16px",
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+          background: "rgba(0,119,182,0.25)",
+          border: "1px solid rgba(0,180,216,0.3)",
+          borderRadius: "18px 18px 4px 18px",
+          color: "var(--foreground)",
+        } : {
+          maxWidth: "75%",
+          padding: "12px 16px",
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+          background: "rgba(10,22,40,0.8)",
+          borderLeft: "3px solid #00B4D8",
+          borderRadius: "18px 18px 18px 4px",
+          color: "var(--foreground)",
+          boxShadow: "-2px 0 12px rgba(0,180,216,0.15)",
+        }}
       >
-        <div className="text-[15px] leading-relaxed">
+        <div>
           {renderContent(message.content)}
           {isStreaming && (
             <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />

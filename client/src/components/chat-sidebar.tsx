@@ -146,7 +146,16 @@ export function ChatSidebar({
         <div className="px-4 pb-4">
           <Button
             onClick={onNewChat}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+            className="w-full bg-primary text-primary-foreground font-medium transition-all duration-200"
+            style={{ "--tw-shadow": "none" } as React.CSSProperties}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.filter = "brightness(1.1)";
+              (e.currentTarget as HTMLElement).style.boxShadow = "0 0 20px rgba(0,180,216,0.5), 0 0 40px rgba(0,180,216,0.25)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.filter = "";
+              (e.currentTarget as HTMLElement).style.boxShadow = "";
+            }}
             data-testid="button-new-chat"
           >
             <Plus className="mr-2 h-4 w-4" />

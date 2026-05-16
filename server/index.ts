@@ -9,6 +9,24 @@ import { createServer } from "http";
 import { startDiscordBot, destroyDiscordClient } from "./services/discord.service";
 import { env } from "./config/env";
 
+// Last-resort guard: Discord.js's underlying `ws` library emits low-level
+// WebSocket errors (e.g. "Opening handshake has timed out") directly on the
+// ws instance before Discord.js can attach its own handler, so they escape
+// Events.Error and arrive here as uncaught exceptions.  Log and continue —
+// Discord will reconnect on its own schedule.
+process.on("uncaughtException", (err) => {
+  const msg = err.message ?? "";
+  if (
+    msg.includes("Opening handshake has timed out") ||
+    msg.includes("WebSocket was closed before the connection was established")
+  ) {
+    console.error(`[discord] Non-fatal WebSocket error: ${msg}`);
+    return;
+  }
+  // Re-throw anything else so genuine bugs still surface.
+  throw err;
+});
+
 const app = express();
 const httpServer = createServer(app);
 
