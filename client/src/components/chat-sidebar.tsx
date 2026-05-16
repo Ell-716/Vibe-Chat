@@ -127,8 +127,8 @@ export function ChatSidebar({
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid="button-home"
           >
-            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "20px", fontWeight: 700 }}>
-              <span style={{ color: "var(--logo-vibe-color)" }}>VIBE</span>{" "}
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "22px", fontWeight: 700 }}>
+              <span style={{ color: "var(--logo-vibe-color)", marginRight: "6px" }}>VIBE</span>
               <span style={{ color: "var(--logo-chat-color)", fontWeight: 400 }}>CHAT</span>
             </span>
           </button>

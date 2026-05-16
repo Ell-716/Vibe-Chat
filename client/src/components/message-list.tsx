@@ -241,19 +241,19 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
           maxWidth: "75%",
           padding: "12px 16px",
           fontFamily: "'DM Sans', system-ui, sans-serif",
-          background: "rgba(0,119,182,0.25)",
-          border: "1px solid rgba(0,180,216,0.3)",
+          background: "var(--bubble-user-bg)",
+          border: "1px solid var(--bubble-user-border)",
           borderRadius: "18px 18px 4px 18px",
-          color: "var(--foreground)",
+          color: "var(--bubble-user-color)",
         } : {
           maxWidth: "75%",
           padding: "12px 16px",
           fontFamily: "'DM Sans', system-ui, sans-serif",
-          background: "rgba(10,22,40,0.8)",
-          borderLeft: "3px solid #00B4D8",
+          background: "var(--bubble-ai-bg)",
+          borderLeft: "3px solid var(--bubble-ai-border-color)",
           borderRadius: "18px 18px 18px 4px",
-          color: "var(--foreground)",
-          boxShadow: "-2px 0 12px rgba(0,180,216,0.15)",
+          color: "var(--bubble-ai-color)",
+          boxShadow: "var(--bubble-ai-shadow)",
         }}
       >
         <div>
