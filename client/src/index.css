@@ -15,7 +15,12 @@
   --card: 0 0% 100%;
   --card-foreground: 220 60% 5%;
   --card-border: 210 50% 86%;
-  --sidebar: 210 20% 97%;
+  --sidebar: 212 60% 96%;
+  /* Logo colors — light mode */
+  --logo-vibe-color: #0077B6;
+  --logo-chat-color: #0F172A;
+  /* Direct border color (bypasses Tailwind's hsl wrapper) */
+  --sidebar-border-color: #C8D8EC;
   --sidebar-foreground: 220 60% 5%;
   --sidebar-border: 210 50% 86%;
   --sidebar-primary: 201 100% 36%;
@@ -101,7 +106,12 @@
   --card-border: 190 100% 42% / 0.15;
   --sidebar: 220 68% 4%;
   --sidebar-foreground: 210 33% 66%;
-  --sidebar-border: 190 100% 42% / 0.08;
+  --sidebar-border: 0 0% 100% / 0.08;
+  /* Logo colors — dark mode */
+  --logo-vibe-color: #00B4D8;
+  --logo-chat-color: #ffffff;
+  /* Direct border color (bypasses Tailwind's hsl wrapper) */
+  --sidebar-border-color: rgba(255,255,255,0.08);
   --sidebar-primary: 190 100% 42%;
   --sidebar-primary-foreground: 220 60% 5%;
   --sidebar-accent: 220 60% 10%;
@@ -284,5 +294,13 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* Sidebar right border — switches between light and dark palette */
+  .sidebar-border-right {
+    border-right: 1px solid #C8D8EC;
+  }
+  .dark .sidebar-border-right {
+    border-right: 1px solid rgba(255,255,255,0.12);
   }
 }

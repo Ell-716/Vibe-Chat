@@ -114,22 +114,22 @@ export function ChatSidebar({
 
       <aside
         className={`
-          fixed lg:relative inset-y-0 left-0 z-50 w-[260px] 
-          flex flex-col bg-sidebar
+          fixed lg:relative inset-y-0 left-0 z-50 w-[260px]
+          flex flex-col bg-sidebar sidebar-border-right
           transform transition-transform duration-200 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
         data-testid="sidebar"
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-8">
+        <div className="flex items-center justify-between" style={{ padding: "20px 16px" }}>
           <button
             onClick={onGoHome}
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid="button-home"
           >
-            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "1.1rem", fontWeight: 700 }}>
-              <span style={{ color: "#00B4D8" }}>VIBE</span>{" "}
-              <span style={{ color: "#ffffff", fontWeight: 400 }}>CHAT</span>
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "20px", fontWeight: 700 }}>
+              <span style={{ color: "var(--logo-vibe-color)" }}>VIBE</span>{" "}
+              <span style={{ color: "var(--logo-chat-color)", fontWeight: 400 }}>CHAT</span>
             </span>
           </button>
           <Button

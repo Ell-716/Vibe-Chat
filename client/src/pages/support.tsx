@@ -47,7 +47,7 @@ const priorityColors: Record<TicketPriority, string> = {
 
 const statusColors: Record<TicketStatus, string> = {
   open: "bg-cyan-500",
-  in_progress: "bg-blue-500",
+  in_progress: "bg-[#2563A8]",
   pending_customer: "bg-yellow-500",
   escalated: "bg-red-500",
   resolved: "bg-slate-500",
@@ -127,9 +127,9 @@ export default function SupportPage() {
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity mb-6"
             data-testid="button-back-to-chat"
           >
-            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "1.1rem", fontWeight: 700 }}>
-              <span style={{ color: "#00B4D8" }}>VIBE</span>{" "}
-              <span style={{ color: "#ffffff", fontWeight: 400 }}>CHAT</span>
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "20px", fontWeight: 700 }}>
+              <span style={{ color: "var(--logo-vibe-color)" }}>VIBE</span>{" "}
+              <span style={{ color: "var(--logo-chat-color)", fontWeight: 400 }}>CHAT</span>
             </span>
           </button>
         </Link>
@@ -236,7 +236,7 @@ export default function SupportPage() {
             filteredTickets.map((ticket) => (
               <Card 
                 key={ticket.id} 
-                className={`cursor-pointer hover-elevate ${selectedTicket?.id === ticket.id ? 'ring-2 ring-primary' : ''}`}
+                className={`cursor-pointer hover-elevate ${selectedTicket?.id === ticket.id ? 'border-[#0077B6] bg-[rgba(0,119,182,0.05)]' : ''}`}
                 onClick={() => setSelectedTicket(ticket)}
                 data-testid={`card-ticket-${ticket.id}`}
               >

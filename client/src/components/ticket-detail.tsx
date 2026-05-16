@@ -42,7 +42,7 @@ const priorityColors: Record<TicketPriority, string> = {
 
 const statusColors: Record<TicketStatus, string> = {
   open: "bg-cyan-500",
-  in_progress: "bg-blue-500",
+  in_progress: "bg-[#2563A8]",
   pending_customer: "bg-yellow-500",
   escalated: "bg-red-500",
   resolved: "bg-slate-500",
