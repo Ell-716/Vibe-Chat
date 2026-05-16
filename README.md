@@ -36,6 +36,31 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 
 ---
 
+## Design System
+
+The frontend follows an **AI-Native UI + Glassmorphism Dark** design language, built to feel immersive and intelligent.
+
+| Token | Value |
+|---|---|
+| Background | Deep Midnight `#050A14` |
+| Primary | Cyber Cyan `#00B4D8` |
+| Accent | AI Indigo `#0077B6` |
+| Muted text | Chrome Silver `#8BA8C4` |
+| Heading font | Orbitron (logo, login h1, empty-state heading) |
+| Body font | DM Sans (chat messages, UI labels) |
+| Code font | Fira Code (inline code, code blocks) |
+
+**Key UI elements:**
+- **Landing page** — full-screen video background (`ai-head.mp4`, Runway AI generated) with a directional gradient overlay; sign-in panel positioned right-side.
+- **Sidebar logo** — "VIBE" (Orbitron bold, cyan) + "CHAT" (Orbitron normal, white), no icon container.
+- **Empty chat state** — AI robot head (`logo.png`) with a `float` animation and cyan `drop-shadow`; "How can I help you today?" in Orbitron.
+- **Message bubbles** — user messages right-aligned with a translucent navy background; AI messages left-aligned with a `3px solid #00B4D8` left accent border and subtle cyan glow. Both styles switch automatically between dark and light mode via CSS custom properties.
+- **New Chat button** — solid cyan with a dual-layer cyan box-shadow glow on hover.
+
+All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:root` for light mode, `.dark` for dark mode). Never use green, emerald, or purple in the UI.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -58,6 +83,9 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 ```
 /
 ├── client/                      # React SPA (Vite)
+│   ├── public/
+│   │   ├── ai-head.mp4          # Landing page video background (Runway AI generated)
+│   │   └── logo.png             # AI head logo used in empty chat state
 │   └── src/
 │       ├── App.tsx              # Root — providers + auth-gated wouter router
 │       ├── pages/
@@ -186,6 +214,9 @@ npm run db:push    # Push Drizzle schema changes to PostgreSQL
 - ✅ **Google OAuth authentication** — Sign in with Google; session-based auth with Passport.js.
 - ✅ **PostgreSQL persistent storage** — Drizzle ORM-backed `DatabaseStorage`; schema managed via `db:push`.
 - ✅ **Private data per user** — All conversations and documents are isolated by `userId`.
+- ✅ **Frontend redesign with AI-Native UI** — Glassmorphism dark theme with cyan/indigo palette, custom message bubbles, and Orbitron/DM Sans typography.
+- ✅ **Video background landing page** — Full-screen AI-generated video (`ai-head.mp4`) with directional gradient overlay and right-side sign-in panel.
+- ✅ **Custom AI head logo** — AI robot head (`logo.png`) used in the empty chat state with float animation and cyan glow.
 - **User profile page** — View and edit display name, avatar, and preferences.
 - **Email / password auth option** — Alternative to Google OAuth for self-hosted deployments.
 - **Admin dashboard** — Usage analytics, user management, and system health for operators.
