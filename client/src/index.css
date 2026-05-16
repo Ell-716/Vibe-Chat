@@ -9,40 +9,53 @@
   --opaque-button-border-intensity: -9;
   --elevate-1: rgba(0,0,0, .04);
   --elevate-2: rgba(0,0,0, .09);
-  --background: 0 0% 100%;
-  --foreground: 0 0% 15%;
-  --border: 0 0% 85%;
-  --card: 0 0% 98%;
-  --card-foreground: 0 0% 15%;
-  --card-border: 0 0% 85%;
-  --sidebar: 0 0% 96%;
-  --sidebar-foreground: 0 0% 15%;
-  --sidebar-border: 0 0% 85%;
-  --sidebar-primary: 168 100% 39%;
+  --background: 210 36% 96%;
+  --foreground: 220 60% 5%;
+  --border: 210 50% 86%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 60% 5%;
+  --card-border: 210 50% 86%;
+  --sidebar: 212 60% 96%;
+  /* Logo colors — light mode */
+  --logo-vibe-color: #0077B6;
+  --logo-chat-color: #0F172A;
+  /* Direct border color (bypasses Tailwind's hsl wrapper) */
+  --sidebar-border-color: #C8D8EC;
+  /* Message bubble colors — light mode */
+  --bubble-user-bg: #E8F4FD;
+  --bubble-user-border: rgba(0,119,182,0.2);
+  --bubble-user-color: #0F172A;
+  --bubble-ai-bg: #F0F6FF;
+  --bubble-ai-border-color: #0077B6;
+  --bubble-ai-color: #0F172A;
+  --bubble-ai-shadow: -2px 0 12px rgba(0,119,182,0.08);
+  --sidebar-foreground: 220 60% 5%;
+  --sidebar-border: 210 50% 86%;
+  --sidebar-primary: 201 100% 36%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 92%;
-  --sidebar-accent-foreground: 0 0% 15%;
-  --sidebar-ring: 168 100% 39%;
+  --sidebar-accent: 210 50% 92%;
+  --sidebar-accent-foreground: 220 60% 5%;
+  --sidebar-ring: 201 100% 36%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 15%;
-  --popover-border: 0 0% 85%;
-  --primary: 168 100% 39%;
+  --popover-foreground: 220 60% 5%;
+  --popover-border: 210 50% 86%;
+  --primary: 201 100% 36%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 95%;
-  --secondary-foreground: 0 0% 15%;
-  --muted: 0 0% 95%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 168 15% 92%;
-  --accent-foreground: 0 0% 15%;
+  --secondary: 210 50% 92%;
+  --secondary-foreground: 221 47% 20%;
+  --muted: 210 37% 95%;
+  --muted-foreground: 213 38% 47%;
+  --accent: 213 64% 40%;
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 45%;
   --destructive-foreground: 0 0% 100%;
-  --input: 0 0% 90%;
-  --ring: 168 100% 39%;
-  --chart-1: 168 100% 40%;
-  --chart-2: 165 100% 45%;
-  --chart-3: 185 100% 45%;
-  --chart-4: 195 100% 45%;
-  --chart-5: 155 100% 45%;
+  --input: 210 50% 92%;
+  --ring: 201 100% 36%;
+  --chart-1: 190 100% 42%;
+  --chart-2: 201 100% 36%;
+  --chart-3: 213 64% 50%;
+  --chart-4: 199 89% 48%;
+  --chart-5: 160 84% 39%;
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, Menlo, monospace;
@@ -93,40 +106,53 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 0 0% 10%;
-  --foreground: 0 0% 100%;
-  --border: 0 0% 20%;
-  --card: 0 0% 18%;
-  --card-foreground: 0 0% 100%;
-  --card-border: 0 0% 20%;
-  --sidebar: 0 0% 12%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-border: 0 0% 20%;
-  --sidebar-primary: 168 100% 39%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 18%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 168 100% 39%;
-  --popover: 0 0% 18%;
-  --popover-foreground: 0 0% 100%;
-  --popover-border: 0 0% 20%;
-  --primary: 168 100% 39%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 18%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 18%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 168 15% 20%;
-  --accent-foreground: 0 0% 100%;
+  --background: 220 60% 5%;
+  --foreground: 218 40% 94%;
+  --border: 190 100% 42% / 0.15;
+  --card: 220 60% 10%;
+  --card-foreground: 218 40% 94%;
+  --card-border: 190 100% 42% / 0.15;
+  --sidebar: 220 68% 4%;
+  --sidebar-foreground: 210 33% 66%;
+  --sidebar-border: 0 0% 100% / 0.08;
+  /* Logo colors — dark mode */
+  --logo-vibe-color: #00B4D8;
+  --logo-chat-color: #ffffff;
+  /* Direct border color (bypasses Tailwind's hsl wrapper) */
+  --sidebar-border-color: rgba(255,255,255,0.08);
+  /* Message bubble colors — dark mode */
+  --bubble-user-bg: rgba(0,119,182,0.25);
+  --bubble-user-border: rgba(0,180,216,0.3);
+  --bubble-user-color: #E8EDF5;
+  --bubble-ai-bg: rgba(10,22,40,0.8);
+  --bubble-ai-border-color: #00B4D8;
+  --bubble-ai-color: #E8EDF5;
+  --bubble-ai-shadow: -2px 0 12px rgba(0,180,216,0.15);
+  --sidebar-primary: 190 100% 42%;
+  --sidebar-primary-foreground: 220 60% 5%;
+  --sidebar-accent: 220 60% 10%;
+  --sidebar-accent-foreground: 218 40% 94%;
+  --sidebar-ring: 190 100% 42%;
+  --popover: 220 60% 10%;
+  --popover-foreground: 218 40% 94%;
+  --popover-border: 190 100% 42% / 0.15;
+  --primary: 190 100% 42%;
+  --primary-foreground: 220 60% 5%;
+  --secondary: 221 47% 20%;
+  --secondary-foreground: 210 33% 66%;
+  --muted: 221 47% 20%;
+  --muted-foreground: 210 33% 66%;
+  --accent: 201 100% 36%;
+  --accent-foreground: 218 40% 94%;
   --destructive: 0 84% 45%;
   --destructive-foreground: 0 0% 100%;
-  --input: 0 0% 25%;
-  --ring: 168 100% 39%;
-  --chart-1: 168 100% 50%;
-  --chart-2: 165 100% 55%;
-  --chart-3: 185 100% 55%;
-  --chart-4: 195 100% 55%;
-  --chart-5: 155 100% 55%;
+  --input: 220 60% 10%;
+  --ring: 190 100% 42%;
+  --chart-1: 190 100% 42%;
+  --chart-2: 201 100% 36%;
+  --chart-3: 213 64% 50%;
+  --chart-4: 199 89% 48%;
+  --chart-5: 160 84% 39%;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
@@ -284,5 +310,18 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Sidebar right border — switches between light and dark palette */
+  .sidebar-border-right {
+    border-right: 1px solid #C8D8EC;
+  }
+  .dark .sidebar-border-right {
+    border-right: 1px solid rgba(255,255,255,0.12);
   }
 }

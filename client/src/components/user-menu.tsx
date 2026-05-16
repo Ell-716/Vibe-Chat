@@ -52,7 +52,7 @@ export function UserMenu() {
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-sidebar-border">
+    <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderTopColor: "var(--sidebar-border-color)" }}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

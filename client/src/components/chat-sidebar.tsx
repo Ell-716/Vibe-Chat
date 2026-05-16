@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, Sparkles, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -114,23 +114,23 @@ export function ChatSidebar({
 
       <aside
         className={`
-          fixed lg:relative inset-y-0 left-0 z-50 w-[260px] 
-          flex flex-col bg-sidebar
+          fixed lg:relative inset-y-0 left-0 z-50 w-[260px]
+          flex flex-col bg-sidebar sidebar-border-right
           transform transition-transform duration-200 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
         data-testid="sidebar"
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-8">
+        <div className="flex items-center justify-between" style={{ padding: "20px 16px" }}>
           <button
             onClick={onGoHome}
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid="button-home"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#00a896]">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-sidebar-foreground">Vibe Chat</span>
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "22px", fontWeight: 700 }}>
+              <span style={{ color: "var(--logo-vibe-color)", marginRight: "6px" }}>VIBE</span>
+              <span style={{ color: "var(--logo-chat-color)", fontWeight: 400 }}>CHAT</span>
+            </span>
           </button>
           <Button
             variant="ghost"
@@ -146,7 +146,16 @@ export function ChatSidebar({
         <div className="px-4 pb-4">
           <Button
             onClick={onNewChat}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+            className="w-full bg-primary text-primary-foreground font-medium transition-all duration-200"
+            style={{ "--tw-shadow": "none" } as React.CSSProperties}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.filter = "brightness(1.1)";
+              (e.currentTarget as HTMLElement).style.boxShadow = "0 0 20px rgba(0,180,216,0.5), 0 0 40px rgba(0,180,216,0.25)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.filter = "";
+              (e.currentTarget as HTMLElement).style.boxShadow = "";
+            }}
             data-testid="button-new-chat"
           >
             <Plus className="mr-2 h-4 w-4" />

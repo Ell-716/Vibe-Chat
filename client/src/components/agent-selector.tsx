@@ -66,7 +66,7 @@ export function AgentSelector({ agents, selectedAgent, onSelectAgent, onOpenSett
             <DropdownMenuItem
               key={agent.id}
               onClick={() => onSelectAgent(agent)}
-              className={`flex items-start gap-3 p-3 cursor-pointer ${
+              className={`group flex items-start gap-3 p-3 cursor-pointer ${
                 selectedAgent?.id === agent.id
                   ? "bg-primary/10 text-foreground"
                   : "text-foreground"
@@ -75,8 +75,8 @@ export function AgentSelector({ agents, selectedAgent, onSelectAgent, onOpenSett
             >
               <Icon className={`h-5 w-5 mt-0.5 ${selectedAgent?.id === agent.id ? "text-primary" : "text-muted-foreground"}`} />
               <div className="flex-1 min-w-0">
-                <div className="font-medium">{agent.name}</div>
-                <div className="text-xs text-muted-foreground truncate">{agent.description}</div>
+                <div className="font-medium group-data-[highlighted]:text-white">{agent.name}</div>
+                <div className="text-xs text-muted-foreground truncate group-data-[highlighted]:text-white/75">{agent.description}</div>
               </div>
             </DropdownMenuItem>
           );

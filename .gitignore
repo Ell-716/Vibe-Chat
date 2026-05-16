@@ -12,3 +12,8 @@ vite.config.ts.*
 
 # Claude Code instructions (local only)
 CLAUDE.md
+# Claude Code local skills
+.claude/
+
+# Design system (local generated files)
+design-system/

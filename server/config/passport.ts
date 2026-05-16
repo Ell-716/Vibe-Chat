@@ -56,15 +56,20 @@ passport.serializeUser((user, done) => {
 
 /**
  * Deserializes a user from the session by loading them from storage.
+ * A 5-second timeout guards against a hung database so the process never
+ * stalls on every request (which manifests as the app stuck on "loading").
  * @param id - The user id stored in the session.
  * @param done - Passport callback.
  */
 passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = await storage.getUser(id);
+    const timeout = new Promise<undefined>((resolve) =>
+      setTimeout(() => resolve(undefined), 5000)
+    );
+    const user = await Promise.race([storage.getUser(id), timeout]);
     done(null, user ?? false);
   } catch (err) {
-    done(err);
+    done(null, false);
   }
 });
 

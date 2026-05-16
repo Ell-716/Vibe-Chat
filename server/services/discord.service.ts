@@ -21,6 +21,12 @@ const client = new Client({
   ],
 });
 
+// Register error handler immediately so WebSocket timeout/handshake errors
+// don't become unhandled 'error' events that crash the process.
+client.on(Events.Error, (error) => {
+  console.error("Discord client error:", error.message);
+});
+
 /** Per-user conversation history kept in memory for the duration of the process. */
 const conversationHistory: Map<string, Array<{ role: "user" | "assistant"; content: string }>> = new Map();
 
@@ -174,15 +180,19 @@ export async function startDiscordBot(): Promise<boolean> {
       );
     });
 
-    client.on(Events.Error, (error) => {
-      console.error("Discord client error:", error);
-    });
-
     client.login(token).catch((error) => {
       console.error("Failed to login to Discord:", error.message);
       resolve(false);
     });
   });
+}
+
+/**
+ * Destroys the Discord client connection, releasing the WebSocket and allowing
+ * the process to exit cleanly on SIGINT/SIGTERM.
+ */
+export function destroyDiscordClient(): void {
+  client.destroy();
 }
 
 /**

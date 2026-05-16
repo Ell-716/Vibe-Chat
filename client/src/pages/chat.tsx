@@ -369,14 +369,15 @@ export default function ChatPage() {
               </SelectTrigger>
               <SelectContent className="bg-popover border-popover-border">
                 {models.map((model) => (
-                  <SelectItem 
-                    key={model.id} 
+                  <SelectItem
+                    key={model.id}
                     value={model.id}
+                    className="group"
                     data-testid={`select-model-${model.id}`}
                   >
                     <span className="flex items-center gap-2">
-                      <span>{model.name}</span>
-                      <span className="text-xs text-muted-foreground">({model.provider})</span>
+                      <span className="group-data-[highlighted]:text-white">{model.name}</span>
+                      <span className="text-xs text-muted-foreground group-data-[highlighted]:text-white/75">({model.provider})</span>
                     </span>
                   </SelectItem>
                 ))}

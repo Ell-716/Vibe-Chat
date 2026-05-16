@@ -1,4 +1,4 @@
-import { Sparkles, Code, BookOpen, Lightbulb } from "lucide-react";
+import { Code, BookOpen, Lightbulb, Sparkles } from "lucide-react";
 
 interface EmptyStateProps {
   onSuggestionClick: (suggestion: string) => void;
@@ -39,11 +39,20 @@ const suggestions = [
 export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
-      <div className="text-center mb-8">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-          <Sparkles className="h-8 w-8 text-primary" />
-        </div>
-        <h2 className="text-2xl font-semibold text-foreground mb-2">How can I help you today?</h2>
+      <div className="flex flex-col items-center mb-8">
+        <img
+          src="/logo.png"
+          alt="Vibe Chat"
+          className="mb-4"
+          style={{
+            width: 150,
+            height: 150,
+            objectFit: "contain",
+            animation: "float 4s ease-in-out infinite",
+            filter: "drop-shadow(0 8px 16px rgba(0,180,216,0.3))",
+          }}
+        />
+        <h2 className="text-2xl font-semibold text-foreground mb-2" style={{ fontFamily: "'Orbitron', sans-serif" }}>How can I help you today?</h2>
         <p className="text-muted-foreground max-w-md">
           Start a conversation with me. I can help you write code, answer questions, brainstorm ideas, and much more.
         </p>
@@ -61,9 +70,9 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
             >
               <div className="flex items-center gap-2">
                 <Icon className="h-5 w-5 text-primary" />
-                <span className="font-medium text-foreground">{suggestion.title}</span>
+                <span className="font-medium text-foreground group-hover:text-white">{suggestion.title}</span>
               </div>
-              <span className="text-sm text-muted-foreground">{suggestion.description}</span>
+              <span className="text-sm text-muted-foreground group-hover:text-white/80">{suggestion.description}</span>
             </button>
           );
         })}

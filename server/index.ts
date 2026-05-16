@@ -6,8 +6,26 @@ import passport from "./config/passport";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { startDiscordBot } from "./services/discord.service";
+import { startDiscordBot, destroyDiscordClient } from "./services/discord.service";
 import { env } from "./config/env";
+
+// Last-resort guard: Discord.js's underlying `ws` library emits low-level
+// WebSocket errors (e.g. "Opening handshake has timed out") directly on the
+// ws instance before Discord.js can attach its own handler, so they escape
+// Events.Error and arrive here as uncaught exceptions.  Log and continue —
+// Discord will reconnect on its own schedule.
+process.on("uncaughtException", (err) => {
+  const msg = err.message ?? "";
+  if (
+    msg.includes("Opening handshake has timed out") ||
+    msg.includes("WebSocket was closed before the connection was established")
+  ) {
+    console.error(`[discord] Non-fatal WebSocket error: ${msg}`);
+    return;
+  }
+  // Re-throw anything else so genuine bugs still surface.
+  throw err;
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -135,4 +153,14 @@ app.use((req, res, next) => {
   httpServer.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown so Ctrl+C (SIGINT) and SIGTERM work cleanly.
+  // Without this, Discord.js keeps the Node event loop alive indefinitely.
+  function shutdown() {
+    log("Shutting down...");
+    destroyDiscordClient();
+    httpServer.close(() => process.exit(0));
+  }
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 })();

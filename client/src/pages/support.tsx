@@ -32,8 +32,7 @@ import {
   MessageSquare,
   RefreshCw,
   User,
-  Mail,
-  Sparkles
+  Mail
 } from "lucide-react";
 import { Link } from "wouter";
 import type { SupportTicket, SupportAgent, TicketCategory, TicketPriority, TicketStatus } from "@shared/schema";
@@ -47,8 +46,8 @@ const priorityColors: Record<TicketPriority, string> = {
 };
 
 const statusColors: Record<TicketStatus, string> = {
-  open: "bg-green-500",
-  in_progress: "bg-blue-500",
+  open: "bg-cyan-500",
+  in_progress: "bg-[#2563A8]",
   pending_customer: "bg-yellow-500",
   escalated: "bg-red-500",
   resolved: "bg-slate-500",
@@ -128,10 +127,10 @@ export default function SupportPage() {
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity mb-6"
             data-testid="button-back-to-chat"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#00a896]">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-foreground">Vibe Chat</span>
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "22px", fontWeight: 700 }}>
+              <span style={{ color: "var(--logo-vibe-color)", marginRight: "6px" }}>VIBE</span>
+              <span style={{ color: "var(--logo-chat-color)", fontWeight: 400 }}>CHAT</span>
+            </span>
           </button>
         </Link>
 
@@ -197,7 +196,7 @@ export default function SupportPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-green-500" />
+                <Users className="w-5 h-5 text-cyan-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Agents Online</p>
                   <p className="text-2xl font-bold" data-testid="text-agents-online">{stats?.agentsOnline || 0}/{stats?.totalAgents || 0}</p>
@@ -237,7 +236,7 @@ export default function SupportPage() {
             filteredTickets.map((ticket) => (
               <Card 
                 key={ticket.id} 
-                className={`cursor-pointer hover-elevate ${selectedTicket?.id === ticket.id ? 'ring-2 ring-primary' : ''}`}
+                className={`cursor-pointer hover-elevate ${selectedTicket?.id === ticket.id ? 'border-[#0077B6] bg-[rgba(0,119,182,0.05)]' : ''}`}
                 onClick={() => setSelectedTicket(ticket)}
                 data-testid={`card-ticket-${ticket.id}`}
               >
