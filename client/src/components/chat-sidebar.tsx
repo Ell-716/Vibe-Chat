@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, Sparkles, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -127,12 +127,9 @@ export function ChatSidebar({
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid="button-home"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#06B6D4]">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-sidebar-foreground" style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em" }}>
-              <span style={{ color: "#06B6D4" }}>VIBE</span>{" "}
-              <span style={{ color: "#ffffff" }}>CHAT</span>
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "1.1rem", fontWeight: 700 }}>
+              <span style={{ color: "#00B4D8" }}>VIBE</span>{" "}
+              <span style={{ color: "#ffffff", fontWeight: 400 }}>CHAT</span>
             </span>
           </button>
           <Button

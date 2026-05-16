@@ -32,8 +32,7 @@ import {
   MessageSquare,
   RefreshCw,
   User,
-  Mail,
-  Sparkles
+  Mail
 } from "lucide-react";
 import { Link } from "wouter";
 import type { SupportTicket, SupportAgent, TicketCategory, TicketPriority, TicketStatus } from "@shared/schema";
@@ -128,12 +127,9 @@ export default function SupportPage() {
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity mb-6"
             data-testid="button-back-to-chat"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#06B6D4]">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em" }}>
-              <span style={{ color: "#06B6D4" }}>VIBE</span>{" "}
-              <span>CHAT</span>
+            <span style={{ fontFamily: "'Orbitron', system-ui, sans-serif", letterSpacing: "0.08em", fontSize: "1.1rem", fontWeight: 700 }}>
+              <span style={{ color: "#00B4D8" }}>VIBE</span>{" "}
+              <span style={{ color: "#ffffff", fontWeight: 400 }}>CHAT</span>
             </span>
           </button>
         </Link>
