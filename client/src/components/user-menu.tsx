@@ -96,13 +96,15 @@ export function UserMenu() {
             </>
           )}
 
-          <DropdownMenuItem
-            className="cursor-pointer"
-            data-testid="menu-item-settings"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </DropdownMenuItem>
+          <Link href="/settings">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              data-testid="menu-item-settings"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+          </Link>
 
           <Link href="/support">
             <DropdownMenuItem
