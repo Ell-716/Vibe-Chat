@@ -32,12 +32,11 @@ import type { Agent, UserPreferences } from "@shared/schema";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MODELS = [
-  { id: "groq-llama", name: "Llama 3.3 70B", provider: "Groq" },
-  { id: "openai-gpt4o", name: "GPT-4o mini", provider: "OpenAI" },
-  { id: "anthropic-claude", name: "Claude Sonnet", provider: "Anthropic" },
-  { id: "google-gemini", name: "Gemini Flash", provider: "Google" },
-];
+interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+}
 
 const CYAN = "#00B4D8";
 const CARD_BG = "hsl(var(--card))";
@@ -277,6 +276,10 @@ function PreferencesTab() {
 
   const [savedKey, setSavedKey] = useState<string | null>(null);
 
+  const { data: models = [] } = useQuery<AIModel[]>({
+    queryKey: ["/api/models"],
+  });
+
   const { data: agents = [] } = useQuery<Agent[]>({
     queryKey: ["/api/agents"],
   });
@@ -297,7 +300,7 @@ function PreferencesTab() {
     },
   });
 
-  const currentModel = prefs.defaultModel ?? "groq-llama";
+  const currentModel = prefs.defaultModel ?? "llama-3.3-70b-versatile";
   const currentAgent = prefs.defaultAgent ?? "general";
 
   return (
@@ -328,7 +331,7 @@ function PreferencesTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MODELS.map((m) => (
+              {models.map((m) => (
                 <SelectItem key={m.id} value={m.id}>
                   <span>{m.name}</span>
                   <span className="ml-2 text-xs opacity-50">({m.provider})</span>

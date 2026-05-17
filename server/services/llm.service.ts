@@ -49,7 +49,7 @@ function getGenAI(): GoogleGenerativeAI {
   return _genAI;
 }
 
-export type AIModel = "gpt-4o-mini" | "groq-llama" | "claude-sonnet" | "gemini-flash";
+export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash";
 
 export interface ChatMessage {
   role: string;
@@ -114,7 +114,7 @@ export function buildSystemPrompt(
  *
  * Model-specific behaviour:
  * - gpt-4o-mini: Runs a tool-calling loop; yields MCP status messages and final text.
- * - groq-llama, claude-sonnet, gemini-flash: Single non-streaming call; yields full response at once.
+ * - llama-3.3-70b-versatile, claude-sonnet-4-6, gemini-1.5-flash: Single non-streaming call; yields full response at once.
  *
  * The generator pattern keeps this service free of any HTTP/SSE concerns —
  * the controller is responsible for formatting and writing SSE events.
@@ -125,7 +125,7 @@ export function buildSystemPrompt(
 export async function* chat(params: ChatParams): AsyncGenerator<string> {
   const { messages, model, systemPrompt, mcpTools } = params;
 
-  if (model === "groq-llama") {
+  if (model === "llama-3.3-70b-versatile") {
     const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -141,7 +141,7 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
     return;
   }
 
-  if (model === "claude-sonnet") {
+  if (model === "claude-sonnet-4-6") {
     const claudeMessages = messages.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -160,7 +160,7 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
     return;
   }
 
-  if (model === "gemini-flash") {
+  if (model === "gemini-1.5-flash") {
     const geminiModel = getGenAI().getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Gemini requires history without the last message, which is sent separately
