@@ -4,6 +4,7 @@ import {
   type SupportTicket, type TicketMessage, type SupportAgent, type EscalationRule,
   type InsertSupportTicket, type InsertTicketMessage, type InsertSupportAgent,
   type TicketPriority, type TicketStatus, type TicketCategory,
+  type UserPreferences,
   defaultSupportAgents, defaultEscalationRules
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -16,6 +17,10 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
+  updateUserName(id: string, name: string): Promise<User | undefined>;
+  getUserPreferences(id: string): Promise<UserPreferences>;
+  updateUserPreferences(id: string, prefs: Partial<UserPreferences>): Promise<UserPreferences>;
+  deleteUserAccount(id: string): Promise<void>;
   getConversation(id: number): Promise<Conversation | undefined>;
   getAllConversations(userId: string): Promise<Conversation[]>;
   createConversation(title: string, userId: string): Promise<Conversation>;
@@ -55,6 +60,13 @@ export interface IStorage {
   getAllEscalationRules(): Promise<EscalationRule[]>;
   getActiveEscalationRules(): Promise<EscalationRule[]>;
 }
+
+/** Default user preferences applied when none are stored yet. */
+const DEFAULT_PREFERENCES: UserPreferences = {
+  defaultModel: "llama-3.3-70b-versatile",
+  defaultAgent: "general",
+  appearance: "system",
+};
 
 /** Maximum number of conversations retained in memory (oldest pruned on overflow). */
 const MAX_CONVERSATIONS = 100;
@@ -148,6 +160,7 @@ export class MemStorage implements IStorage {
       ...insertUser,
       id,
       avatar: insertUser.avatar ?? null,
+      preferences: { ...DEFAULT_PREFERENCES },
       createdAt: now,
       updatedAt: now,
     };
@@ -167,6 +180,56 @@ export class MemStorage implements IStorage {
     const updated: User = { ...user, ...data, id, updatedAt: new Date() };
     this.users.set(id, updated);
     return updated;
+  }
+
+  /**
+   * Updates only the display name of a user.
+   * @param id - The user's UUID.
+   * @param name - The new display name.
+   * @returns The updated User, or undefined if not found.
+   */
+  async updateUserName(id: string, name: string): Promise<User | undefined> {
+    return this.updateUser(id, { name });
+  }
+
+  /**
+   * Returns stored preferences for the user, falling back to defaults.
+   * @param id - The user's UUID.
+   * @returns The user's UserPreferences.
+   */
+  async getUserPreferences(id: string): Promise<UserPreferences> {
+    const user = this.users.get(id);
+    if (!user) return { ...DEFAULT_PREFERENCES };
+    return { ...DEFAULT_PREFERENCES, ...((user.preferences as UserPreferences) ?? {}) };
+  }
+
+  /**
+   * Merges the supplied fields into the user's stored preferences.
+   * @param id - The user's UUID.
+   * @param prefs - Subset of UserPreferences fields to update.
+   * @returns The merged UserPreferences.
+   */
+  async updateUserPreferences(id: string, prefs: Partial<UserPreferences>): Promise<UserPreferences> {
+    const existing = await this.getUserPreferences(id);
+    const merged: UserPreferences = { ...existing, ...prefs };
+    await this.updateUser(id, { preferences: merged });
+    return merged;
+  }
+
+  /**
+   * Permanently deletes all data belonging to a user:
+   * messages → conversations → documents → user row.
+   * @param id - The user's UUID.
+   */
+  async deleteUserAccount(id: string): Promise<void> {
+    // Delete all conversations (which cascade-deletes their messages)
+    const userConversations = Array.from(this.conversations.values()).filter(
+      (c) => c.userId === id
+    );
+    for (const convo of userConversations) {
+      await this.deleteConversation(convo.id);
+    }
+    this.users.delete(id);
   }
 
   /**

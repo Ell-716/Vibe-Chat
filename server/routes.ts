@@ -5,6 +5,7 @@ import * as agentController from "./controllers/agent.controller";
 import * as ragController from "./controllers/rag.controller";
 import * as supportController from "./controllers/support.controller";
 import * as authController from "./controllers/auth.controller";
+import * as userController from "./controllers/user.controller";
 import { requireAuth } from "./middleware/requireAuth";
 
 /**
@@ -35,6 +36,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── Protect all /api routes ───────────────────────────────────────────────
   app.use("/api", requireAuth);
+
+  // ── User settings ─────────────────────────────────────────────────────────
+  app.get("/api/user/me", userController.getMe);
+  app.patch("/api/user/profile", userController.updateProfile);
+  app.patch("/api/user/preferences", userController.updatePreferences);
+  app.delete("/api/user/account", userController.deleteAccount);
 
   // ── Conversations ──────────────────────────────────────────────────────────
   app.get("/api/conversations", chatController.getConversations);
