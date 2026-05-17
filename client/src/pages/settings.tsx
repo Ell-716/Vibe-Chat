@@ -39,11 +39,11 @@ const MODELS = [
   { id: "google-gemini", name: "Gemini Flash", provider: "Google" },
 ];
 
-const CYAN = "#06B6D4";
-const GLASS_BG = "rgba(255,255,255,0.06)";
-const GLASS_BORDER = "rgba(255,255,255,0.12)";
-const GLASS_BORDER_BRIGHT = "rgba(255,255,255,0.20)";
-const SURFACE_HOVER = "rgba(255,255,255,0.10)";
+const CYAN = "#00B4D8";
+const CARD_BG = "hsl(var(--card))";
+const BORDER = "hsl(var(--border))";
+const BORDER_BRIGHT = "rgba(0,180,216,0.3)";
+const SURFACE_HOVER = "hsl(var(--muted))";
 
 type SettingsTab = "account" | "preferences" | "appearance" | "privacy" | "danger";
 
@@ -90,10 +90,8 @@ function GlassCard({ children, className = "", style }: { children: React.ReactN
     <div
       className={`rounded-xl p-6 ${className}`}
       style={{
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        background: GLASS_BG,
-        border: `1px solid ${GLASS_BORDER}`,
+        background: CARD_BG,
+        border: `1px solid ${BORDER}`,
         ...style,
       }}
     >
@@ -121,7 +119,7 @@ function SectionHeading({ children, danger = false }: { children: React.ReactNod
 
 /** A horizontal divider styled as a glass edge. */
 function Divider() {
-  return <div className="my-5" style={{ borderTop: `1px solid ${GLASS_BORDER}` }} />;
+  return <div className="my-5" style={{ borderTop: `1px solid ${BORDER}` }} />;
 }
 
 // ── ACCOUNT TAB ───────────────────────────────────────────────────────────────
@@ -187,7 +185,7 @@ function AccountTab() {
               {user ? getInitials(user.name) : "?"}
             </div>
           )}
-          <p className="text-sm" style={{ color: "#64748B" }}>
+          <p className="text-sm" style={{ color: "hsl(var(--muted-foreground))" }}>
             Avatar synced from Google
           </p>
         </div>
@@ -197,7 +195,7 @@ function AccountTab() {
       <GlassCard>
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: "#94A3B8" }}>
+          <label className="block text-sm font-medium mb-2" style={{ color: "hsl(var(--muted-foreground))" }}>
             Display Name
           </label>
           <div className="flex gap-2">
@@ -206,8 +204,8 @@ function AccountTab() {
               onChange={handleNameChange}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
               maxLength={50}
-              className="flex-1 bg-transparent border-white/10 text-white focus-visible:ring-cyan-400"
-              style={{ borderColor: nameDirty ? CYAN : GLASS_BORDER }}
+              className="flex-1 focus-visible:ring-cyan-400"
+              style={{ background: "hsl(var(--input))", borderColor: nameDirty ? CYAN : BORDER, color: "hsl(var(--foreground))" }}
             />
             {nameDirty && (
               <Button
@@ -232,19 +230,19 @@ function AccountTab() {
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: "#94A3B8" }}>
+          <label className="block text-sm font-medium mb-2" style={{ color: "hsl(var(--muted-foreground))" }}>
             Email
           </label>
           <div className="flex items-center gap-2">
             <Input
               value={user?.email ?? ""}
               readOnly
-              className="flex-1 bg-transparent cursor-not-allowed opacity-60"
-              style={{ borderColor: GLASS_BORDER, color: "#F1F5F9" }}
+              className="flex-1 cursor-not-allowed opacity-60"
+              style={{ background: "hsl(var(--input))", borderColor: BORDER, color: "hsl(var(--foreground))" }}
             />
-            <Lock className="h-4 w-4 shrink-0" style={{ color: "#64748B" }} />
+            <Lock className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--muted-foreground))" }} />
           </div>
-          <p className="mt-1.5 text-xs" style={{ color: "#64748B" }}>
+          <p className="mt-1.5 text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             Managed by Google
           </p>
         </div>
@@ -253,10 +251,10 @@ function AccountTab() {
 
         {/* Member since */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium" style={{ color: "#94A3B8" }}>
+          <span className="text-sm font-medium" style={{ color: "hsl(var(--muted-foreground))" }}>
             Member since
           </span>
-          <span className="text-sm" style={{ color: "#F1F5F9" }}>
+          <span className="text-sm" style={{ color: "hsl(var(--foreground))" }}>
             {user?.createdAt ? formatDate(user.createdAt) : "—"}
           </span>
         </div>
@@ -308,7 +306,7 @@ function PreferencesTab() {
         {/* Default Model */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium" style={{ color: "#94A3B8" }}>
+            <label className="text-sm font-medium" style={{ color: "hsl(var(--muted-foreground))" }}>
               Default Model
             </label>
             {savedKey === "defaultModel" && (
@@ -322,8 +320,8 @@ function PreferencesTab() {
             onValueChange={(val) => updatePrefs.mutate({ defaultModel: val })}
           >
             <SelectTrigger
-              className="w-full bg-transparent"
-              style={{ borderColor: GLASS_BORDER, color: "#F1F5F9" }}
+              className="w-full"
+              style={{ background: "hsl(var(--input))", borderColor: BORDER, color: "hsl(var(--foreground))" }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -336,7 +334,7 @@ function PreferencesTab() {
               ))}
             </SelectContent>
           </Select>
-          <p className="mt-1.5 text-xs" style={{ color: "#64748B" }}>
+          <p className="mt-1.5 text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             Used when starting a new conversation
           </p>
         </div>
@@ -346,7 +344,7 @@ function PreferencesTab() {
         {/* Default Agent */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium" style={{ color: "#94A3B8" }}>
+            <label className="text-sm font-medium" style={{ color: "hsl(var(--muted-foreground))" }}>
               Default Agent
             </label>
             {savedKey === "defaultAgent" && (
@@ -360,8 +358,8 @@ function PreferencesTab() {
             onValueChange={(val) => updatePrefs.mutate({ defaultAgent: val })}
           >
             <SelectTrigger
-              className="w-full bg-transparent"
-              style={{ borderColor: GLASS_BORDER, color: "#F1F5F9" }}
+              className="w-full"
+              style={{ background: "hsl(var(--input))", borderColor: BORDER, color: "hsl(var(--foreground))" }}
             >
               <SelectValue />
             </SelectTrigger>
@@ -373,7 +371,7 @@ function PreferencesTab() {
               ))}
             </SelectContent>
           </Select>
-          <p className="mt-1.5 text-xs" style={{ color: "#64748B" }}>
+          <p className="mt-1.5 text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             Active agent when opening a new chat
           </p>
         </div>
@@ -462,7 +460,7 @@ function AppearanceTab() {
       <SectionHeading>Appearance</SectionHeading>
 
       <GlassCard>
-        <p className="text-sm mb-5" style={{ color: "#94A3B8" }}>
+        <p className="text-sm mb-5" style={{ color: "hsl(var(--muted-foreground))" }}>
           Choose how Vibe Chat looks to you.
         </p>
         <div className="grid grid-cols-3 gap-3">
@@ -474,9 +472,9 @@ function AppearanceTab() {
                 onClick={() => handleSelect(id)}
                 className="rounded-xl p-3 flex flex-col gap-2 transition-all duration-200 cursor-pointer focus-visible:outline-none"
                 style={{
-                  background: isActive ? "rgba(6,182,212,0.08)" : GLASS_BG,
-                  border: `2px solid ${isActive ? CYAN : GLASS_BORDER}`,
-                  boxShadow: isActive ? `0 0 16px rgba(6,182,212,0.2)` : "none",
+                  background: isActive ? "rgba(0,180,216,0.08)" : CARD_BG,
+                  border: `2px solid ${isActive ? CYAN : BORDER}`,
+                  boxShadow: isActive ? `0 0 16px rgba(0,180,216,0.2)` : "none",
                 }}
                 aria-pressed={isActive}
               >
@@ -486,11 +484,11 @@ function AppearanceTab() {
                 <div className="flex items-center justify-center gap-1.5">
                   <Icon
                     className="h-3.5 w-3.5"
-                    style={{ color: isActive ? CYAN : "#64748B" }}
+                    style={{ color: isActive ? CYAN : "hsl(var(--muted-foreground))" }}
                   />
                   <span
                     className="text-xs font-medium"
-                    style={{ color: isActive ? CYAN : "#94A3B8" }}
+                    style={{ color: isActive ? CYAN : "hsl(var(--muted-foreground))" }}
                   >
                     {label}
                   </span>
@@ -518,23 +516,23 @@ function DataPrivacyTab() {
         <div className="flex items-start gap-3 mb-4">
           <div
             className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: `rgba(6,182,212,0.12)` }}
+            style={{ background: "rgba(0,180,216,0.12)" }}
           >
             <Shield className="h-4 w-4" style={{ color: CYAN }} />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-semibold" style={{ color: "#F1F5F9" }}>
+              <span className="text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
                 Privacy Controls
               </span>
               <span
                 className="text-xs font-medium px-2 py-0.5 rounded-full"
-                style={{ background: `rgba(6,182,212,0.15)`, color: CYAN, border: `1px solid rgba(6,182,212,0.3)` }}
+                style={{ background: "rgba(0,180,216,0.15)", color: CYAN, border: "1px solid rgba(0,180,216,0.3)" }}
               >
                 Coming Soon
               </span>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: "#64748B" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
               We're working on giving you more control over your data.
               Check back soon.
             </p>
@@ -550,20 +548,20 @@ function DataPrivacyTab() {
         ].map(({ label, desc }) => (
           <div key={label} className="flex items-center justify-between py-3 opacity-40 cursor-not-allowed">
             <div className="flex items-center gap-3">
-              <Lock className="h-4 w-4 shrink-0" style={{ color: "#64748B" }} />
+              <Lock className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--muted-foreground))" }} />
               <div>
-                <p className="text-sm font-medium" style={{ color: "#94A3B8" }}>{label}</p>
-                <p className="text-xs" style={{ color: "#64748B" }}>{desc}</p>
+                <p className="text-sm font-medium" style={{ color: "hsl(var(--muted-foreground))" }}>{label}</p>
+                <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{desc}</p>
               </div>
             </div>
             {/* Fake toggle */}
             <div
               className="w-9 h-5 rounded-full relative"
-              style={{ background: GLASS_BORDER }}
+              style={{ background: BORDER }}
             >
               <div
                 className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full"
-                style={{ background: "#64748B" }}
+                style={{ background: "hsl(var(--muted-foreground))" }}
               />
             </div>
           </div>
@@ -610,10 +608,10 @@ function DangerZoneTab() {
             <AlertTriangle className="h-4 w-4" style={{ color: "#F43F5E" }} />
           </div>
           <div>
-            <p className="text-sm font-semibold mb-1" style={{ color: "#F1F5F9" }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: "hsl(var(--foreground))" }}>
               Delete Account
             </p>
-            <p className="text-sm leading-relaxed" style={{ color: "#94A3B8" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
               Permanently deletes your account, all conversations, messages,
               and uploaded documents. This action{" "}
               <strong style={{ color: "#F43F5E" }}>cannot be undone</strong>.
@@ -645,9 +643,8 @@ function DangerZoneTab() {
           <div
             className="w-full max-w-[480px] rounded-xl p-6"
             style={{
-              backdropFilter: "blur(20px)",
-              background: "rgba(17,24,39,0.95)",
-              border: `1px solid rgba(244,63,94,0.3)`,
+              background: "hsl(var(--card))",
+              border: "1px solid rgba(244,63,94,0.3)",
               boxShadow: "0 25px 50px rgba(0,0,0,0.6)",
               animation: "modalEnter 250ms cubic-bezier(0.34,1.56,0.64,1) forwards",
             }}
@@ -665,13 +662,13 @@ function DangerZoneTab() {
               <h3
                 id="delete-modal-title"
                 className="text-lg font-bold"
-                style={{ fontFamily: "'Orbitron', sans-serif", color: "#F1F5F9" }}
+                style={{ fontFamily: "'Orbitron', sans-serif", color: "hsl(var(--foreground))" }}
               >
                 Confirm Deletion
               </h3>
             </div>
 
-            <p className="text-sm mb-5 leading-relaxed" style={{ color: "#94A3B8" }}>
+            <p className="text-sm mb-5 leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
               This will permanently delete your account and all associated data.
               To confirm, type{" "}
               <strong style={{ color: "#F43F5E", fontFamily: "monospace" }}>DELETE</strong>{" "}
@@ -682,10 +679,11 @@ function DangerZoneTab() {
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="Type DELETE to confirm"
-              className="mb-4 bg-transparent font-mono"
+              className="mb-4 font-mono"
               style={{
-                borderColor: confirmText === "DELETE" ? "#F43F5E" : GLASS_BORDER,
-                color: "#F1F5F9",
+                background: "hsl(var(--input))",
+                borderColor: confirmText === "DELETE" ? "#F43F5E" : BORDER,
+                color: "hsl(var(--foreground))",
               }}
               autoFocus
             />
@@ -696,7 +694,7 @@ function DangerZoneTab() {
                 onClick={() => { setShowModal(false); setConfirmText(""); }}
                 disabled={deleteAccount.isPending}
                 className="cursor-pointer"
-                style={{ color: "#94A3B8" }}
+                style={{ color: "hsl(var(--muted-foreground))" }}
               >
                 Cancel
               </Button>
@@ -752,15 +750,15 @@ export default function SettingsPage() {
   return (
     <div
       className="min-h-screen flex"
-      style={{ background: "#050A14", fontFamily: "'DM Sans', system-ui, sans-serif" }}
+      style={{ background: "hsl(var(--background))", fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
       {/* ── Desktop sidebar nav ─────────────────────────────────────────── */}
       <nav
         className="hidden md:flex flex-col shrink-0 py-6 px-3"
         style={{
           width: 200,
-          background: "rgba(17,24,39,0.6)",
-          borderRight: `1px solid ${GLASS_BORDER}`,
+          background: "hsl(var(--sidebar))",
+          borderRight: "1px solid rgba(0,180,216,0.08)",
           position: "sticky",
           top: 0,
           height: "100vh",
@@ -769,9 +767,9 @@ export default function SettingsPage() {
         <Link href="/">
           <button
             className="flex items-center gap-2 mb-8 px-3 py-2 rounded-lg w-full transition-colors duration-150 cursor-pointer"
-            style={{ color: "#64748B" }}
+            style={{ color: "hsl(var(--muted-foreground))" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = CYAN)}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "hsl(var(--muted-foreground))")}
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm">Back to Chat</span>
@@ -780,7 +778,7 @@ export default function SettingsPage() {
 
         <p
           className="px-3 mb-3 text-xs font-semibold uppercase tracking-widest"
-          style={{ color: "#475569", fontFamily: "'Orbitron', sans-serif", fontSize: 9 }}
+          style={{ color: "hsl(var(--muted-foreground))", fontFamily: "'Orbitron', sans-serif", fontSize: 9 }}
         >
           Settings
         </p>
@@ -794,11 +792,11 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(id)}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer"
                   style={{
-                    color: isActive ? (danger ? "#F43F5E" : CYAN) : danger ? "rgba(244,63,94,0.7)" : "#94A3B8",
+                    color: isActive ? (danger ? "#F43F5E" : CYAN) : danger ? "rgba(244,63,94,0.7)" : "hsl(var(--muted-foreground))",
                     background: isActive
                       ? danger
                         ? "rgba(244,63,94,0.08)"
-                        : "rgba(6,182,212,0.08)"
+                        : "rgba(0,180,216,0.08)"
                       : "transparent",
                     borderLeft: isActive
                       ? `2px solid ${danger ? "#F43F5E" : CYAN}`
@@ -822,7 +820,7 @@ export default function SettingsPage() {
       </nav>
 
       {/* ── Mobile tab strip ────────────────────────────────────────────── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 overflow-x-auto" style={{ background: "rgba(5,10,20,0.95)", borderBottom: `1px solid ${GLASS_BORDER}` }}>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 overflow-x-auto" style={{ background: "hsl(var(--sidebar))", borderBottom: "1px solid rgba(0,180,216,0.08)" }}>
         <div className="flex min-w-max px-2 py-2 gap-1">
           {NAV_ITEMS.map(({ id, label, Icon, danger }) => {
             const isActive = activeTab === id;
@@ -832,9 +830,9 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(id)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors duration-150 cursor-pointer"
                 style={{
-                  color: isActive ? (danger ? "#F43F5E" : CYAN) : danger ? "rgba(244,63,94,0.6)" : "#94A3B8",
+                  color: isActive ? (danger ? "#F43F5E" : CYAN) : danger ? "rgba(244,63,94,0.6)" : "hsl(var(--muted-foreground))",
                   background: isActive
-                    ? danger ? "rgba(244,63,94,0.1)" : "rgba(6,182,212,0.1)"
+                    ? danger ? "rgba(244,63,94,0.1)" : "rgba(0,180,216,0.1)"
                     : "transparent",
                   border: `1px solid ${isActive ? (danger ? "rgba(244,63,94,0.4)" : "rgba(6,182,212,0.4)") : "transparent"}`,
                 }}
@@ -854,9 +852,9 @@ export default function SettingsPage() {
           <Link href="/">
             <button
               className="md:hidden flex items-center gap-2 mb-6 text-sm cursor-pointer transition-colors duration-150"
-              style={{ color: "#64748B" }}
+              style={{ color: "hsl(var(--muted-foreground))" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = CYAN)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748B")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "hsl(var(--muted-foreground))")}
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Chat
