@@ -13,10 +13,16 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-/** Reads the OS dark-mode preference via matchMedia. */
+/** Reads the OS dark-mode preference via matchMedia. Defaults to dark when unknown. */
 function getOsTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "dark";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  // matchMedia returns matches=false both when OS is light AND when it can't
+  // determine a preference. We only switch to light when there is an explicit
+  // light preference; everything else (including "no preference") stays dark.
+  if (mq.matches) return "dark";
+  if (window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
+  return "dark"; // OS preference unknown — fall back to dark
 }
 
 /**
