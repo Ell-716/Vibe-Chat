@@ -109,7 +109,7 @@ function SectionHeading({ children, danger = false }: { children: React.ReactNod
       className="text-xl font-bold mb-6"
       style={{
         fontFamily: "'Orbitron', sans-serif",
-        color: danger ? "#F43F5E" : "#F1F5F9",
+        color: danger ? "#F43F5E" : "hsl(var(--foreground))",
       }}
     >
       {children}
@@ -212,8 +212,10 @@ function AccountTab() {
                 onClick={handleSave}
                 disabled={updateProfile.isPending}
                 size="sm"
-                className="shrink-0 text-white"
-                style={{ background: `linear-gradient(90deg, #6366F1, ${CYAN})` }}
+                className="shrink-0 transition-all duration-150"
+                style={{ background: "#00B4D8", color: "#050A14", border: "none" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#0891B2"; e.currentTarget.style.boxShadow = "0 0 12px rgba(0,180,216,0.4)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#00B4D8"; e.currentTarget.style.boxShadow = "none"; }}
               >
                 {updateProfile.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -778,7 +780,7 @@ export default function SettingsPage() {
 
         <p
           className="px-3 mb-3 text-xs font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--muted-foreground))", fontFamily: "'Orbitron', sans-serif", fontSize: 9 }}
+          style={{ color: "hsl(var(--muted-foreground))", fontFamily: "'Orbitron', sans-serif", fontSize: 11, letterSpacing: "0.15em", fontWeight: 600 }}
         >
           Settings
         </p>
