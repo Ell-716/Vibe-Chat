@@ -190,7 +190,7 @@ function FaqGroup({
 export default function HelpPage() {
   return (
     <div
-      className="min-h-screen overflow-y-auto"
+      className="h-full overflow-y-auto"
       style={{
         background: "hsl(var(--background))",
         fontFamily: "'DM Sans', system-ui, sans-serif",
