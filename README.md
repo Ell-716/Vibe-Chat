@@ -34,6 +34,14 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 ### Level 3 — RAG
 - **Document-grounded answers** — Upload PDF files; the server parses, chunks, and indexes them with TF-IDF keyword scoring. Each message retrieves the top-k most relevant chunks and injects them into the system prompt as context. Documents are scoped to the uploading user.
 
+### Settings & Help
+- **Settings page** — Full settings UI at `/settings` with five tabs: Account, Preferences, Appearance, Data & Privacy, and Danger Zone.
+- **User profile management** — Edit display name; avatar is pulled from Google OAuth.
+- **Default model and agent preferences** — Per-user preferences stored in a `jsonb` column; applied automatically when opening the chat page.
+- **Light / dark / system theme switching** — Three-way toggle (Light, Dark, System) in the Appearance tab; system mode tracks the OS preference and defaults to dark when preference is unknown.
+- **Account deletion** — Danger Zone tab with a confirmation modal requiring the user to type `DELETE`; cascades deletes all user data.
+- **Help page** — Full FAQ page at `/help` with a getting-started guide, grouped accordion FAQ, and a link to the support ticket system.
+
 ---
 
 ## Design System
@@ -91,6 +99,8 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 │       ├── pages/
 │       │   ├── chat.tsx         # "/" — main chat interface
 │       │   ├── support.tsx      # "/support" — support dashboard
+│       │   ├── settings.tsx     # "/settings" — account, preferences, appearance
+│       │   ├── help.tsx         # "/help" — getting started guide + FAQ
 │       │   ├── login.tsx        # "/login" — Google sign-in page
 │       │   └── not-found.tsx    # 404 fallback
 │       ├── components/          # Feature components
@@ -114,12 +124,14 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 │   │   ├── chat.controller.ts   # Conversations, messages, models, voice
 │   │   ├── support.controller.ts# Tickets, agents, escalation rules, stats
 │   │   ├── agent.controller.ts  # Prompt agents CRUD
-│   │   └── rag.controller.ts    # Document upload, listing, MCP tools
+│   │   ├── rag.controller.ts    # Document upload, listing, MCP tools
+│   │   └── user.controller.ts   # Profile update, preferences, account deletion
 │   ├── middleware/
 │   │   └── requireAuth.ts       # Checks req.isAuthenticated(); returns 401 if not
 │   └── services/
 │       ├── auth.service.ts      # initiateGoogleAuth, handleCallback, logout, getCurrentUser
 │       ├── llm.service.ts       # All AI model calls (AsyncGenerator streaming)
+│       ├── user.service.ts      # Name/preferences validation and storage delegation
 │       ├── support.service.ts   # Ticket analysis, routing, escalation checks
 │       ├── rag.service.ts       # PDF parsing, chunking, TF-IDF retrieval (userId-scoped)
 │       ├── mcp.service.ts       # Zapier MCP JSON-RPC client
@@ -217,7 +229,11 @@ npm run db:push    # Push Drizzle schema changes to PostgreSQL
 - ✅ **Frontend redesign with AI-Native UI** — Glassmorphism dark theme with cyan/indigo palette, custom message bubbles, and Orbitron/DM Sans typography.
 - ✅ **Video background landing page** — Full-screen AI-generated video (`ai-head.mp4`) with directional gradient overlay and right-side sign-in panel.
 - ✅ **Custom AI head logo** — AI robot head (`logo.png`) used in the empty chat state with float animation and cyan glow.
-- **User profile page** — View and edit display name, avatar, and preferences.
+- ✅ **Settings page** — Account management, per-user model/agent preferences, and light/dark/system theme switching.
+- ✅ **Help page** — Getting-started guide, grouped FAQ accordion, and link to the support ticket system.
+- ✅ **Account management** — Edit display name, manage preferences, and delete account with full data cascade.
+- **Data export** — Allow users to download their conversation history and uploaded documents.
+- **Conversation sharing** — Share a read-only link to a conversation with others.
 - **Email / password auth option** — Alternative to Google OAuth for self-hosted deployments.
 - **Admin dashboard** — Usage analytics, user management, and system health for operators.
 - **Ticket analytics** — Charts for ticket volume, response time trends, and agent performance using Recharts.
