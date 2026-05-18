@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Rocket, FileText, Bot, ChevronDown, Mail } from "lucide-react";
+import { ArrowLeft, Rocket, FileText, Bot, ChevronDown } from "lucide-react";
 
 // ── Design tokens (mirrors settings.tsx pattern) ──────────────────────────────
 
@@ -304,30 +304,30 @@ export default function HelpPage() {
               Still need help?
             </p>
             <p className="text-sm leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
-              Can't find what you're looking for? Reach out and we'll get back to you.
+              Can't find what you're looking for? Submit a support ticket and we'll get back to you.
             </p>
           </div>
-          <a
-            href="mailto:support@vibechat.app"
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
-            style={{
-              border: `1px solid ${CYAN}`,
-              color: CYAN,
-              background: "transparent",
-              textDecoration: "none",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "rgba(0,180,216,0.1)";
-              (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 12px rgba(0,180,216,0.25)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
-              (e.currentTarget as HTMLAnchorElement).style.boxShadow = "none";
-            }}
-          >
-            <Mail className="h-4 w-4" />
-            Contact Support
-          </a>
+          <Link href="/support">
+            <a
+              className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer"
+              style={{
+                border: `1px solid ${CYAN}`,
+                color: CYAN,
+                background: "transparent",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(0,180,216,0.1)";
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 12px rgba(0,180,216,0.25)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow = "none";
+              }}
+            >
+              Open Support
+            </a>
+          </Link>
         </div>
 
       </div>
