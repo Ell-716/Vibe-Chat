@@ -115,13 +115,15 @@ export function UserMenu() {
             </DropdownMenuItem>
           </Link>
 
-          <DropdownMenuItem
-            className="cursor-pointer"
-            data-testid="menu-item-help"
-          >
-            <HelpCircle className="h-4 w-4 mr-2" />
-            Help
-          </DropdownMenuItem>
+          <Link href="/help">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              data-testid="menu-item-help"
+            >
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </DropdownMenuItem>
+          </Link>
 
           <DropdownMenuSeparator />
 
