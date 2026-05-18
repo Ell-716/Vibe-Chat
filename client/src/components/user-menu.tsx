@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
 
@@ -96,13 +95,15 @@ export function UserMenu() {
             </>
           )}
 
-          <DropdownMenuItem
-            className="cursor-pointer"
-            data-testid="menu-item-settings"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </DropdownMenuItem>
+          <Link href="/settings">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              data-testid="menu-item-settings"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+          </Link>
 
           <Link href="/support">
             <DropdownMenuItem
@@ -114,13 +115,15 @@ export function UserMenu() {
             </DropdownMenuItem>
           </Link>
 
-          <DropdownMenuItem
-            className="cursor-pointer"
-            data-testid="menu-item-help"
-          >
-            <HelpCircle className="h-4 w-4 mr-2" />
-            Help
-          </DropdownMenuItem>
+          <Link href="/help">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              data-testid="menu-item-help"
+            >
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </DropdownMenuItem>
+          </Link>
 
           <DropdownMenuSeparator />
 
@@ -135,7 +138,6 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ThemeToggle />
     </div>
   );
 }

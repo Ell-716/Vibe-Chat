@@ -7,7 +7,7 @@ import { useTheme } from "@/components/theme-provider";
  * Shows a Sun icon in dark mode and a Moon icon in light mode.
  */
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   return (
     <Button
@@ -17,7 +17,7 @@ export function ThemeToggle() {
       className="text-foreground hover:bg-accent"
       data-testid="button-theme-toggle"
     >
-      {theme === "dark" ? (
+      {resolvedTheme === "dark" ? (
         <Sun className="h-5 w-5" />
       ) : (
         <Moon className="h-5 w-5" />

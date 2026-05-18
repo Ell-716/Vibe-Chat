@@ -9,6 +9,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   avatar: text("avatar"),
+  preferences: jsonb("preferences").default(sql`'{"defaultModel":"llama-3.3-70b-versatile","defaultAgent":"general","appearance":"system"}'::jsonb`),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
@@ -22,6 +23,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export interface UserPreferences {
+  defaultModel: string;
+  defaultAgent: string;
+  appearance: 'light' | 'dark' | 'system';
+}
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),

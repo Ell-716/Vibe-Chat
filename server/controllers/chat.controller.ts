@@ -128,7 +128,7 @@ export async function deleteConversation(req: Request, res: Response): Promise<v
 export async function sendMessage(req: Request, res: Response): Promise<void> {
   try {
     const conversationId = parseInt(req.params.id);
-    const { content, mcpTools, model = "groq-llama", agentId } = req.body;
+    const { content, mcpTools, model = "llama-3.3-70b-versatile", agentId } = req.body;
 
     if (!content || typeof content !== "string") {
       res.status(400).json({ error: "Content is required" });
@@ -194,10 +194,10 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
  */
 export function getModels(_req: Request, res: Response): void {
   res.json([
+    { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", provider: "Groq" },
     { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
-    { id: "groq-llama", name: "Llama 3", provider: "Groq" },
-    { id: "claude-sonnet", name: "Claude Sonnet", provider: "Anthropic" },
-    { id: "gemini-flash", name: "Gemini Flash", provider: "Google" },
+    { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", provider: "Anthropic" },
+    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google" },
   ]);
 }
 

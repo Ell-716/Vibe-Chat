@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Menu, Volume2, VolumeX } from "lucide-react";
-import type { Conversation, Message, MCPTool, Agent } from "@shared/schema";
+import type { Conversation, Message, MCPTool, Agent, UserPreferences } from "@shared/schema";
 
 interface AIModel {
   id: string;
@@ -38,11 +39,12 @@ interface ConversationWithMessages extends Conversation {
  * All server state is owned by TanStack Query; streaming is done via raw fetch + ReadableStream.
  */
 export default function ChatPage() {
+  const { user } = useAuth();
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>("groq-llama");
+  const [selectedModel, setSelectedModel] = useState<string>("llama-3.3-70b-versatile");
   const [voiceResponseEnabled, setVoiceResponseEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem("voiceResponseEnabled");
     return saved ? JSON.parse(saved) : false;
@@ -50,6 +52,7 @@ export default function ChatPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prefsApplied = useRef(false);
   const { toast } = useToast();
 
   /** Flips the voice-response toggle and persists the new value to localStorage. */
@@ -67,13 +70,25 @@ export default function ChatPage() {
     queryKey: ["/api/agents"],
   });
 
-  // Set default agent when agents load
+  // Apply user preferences (model + agent) exactly once when both the user
+  // record and agent list are available. Preferences take priority over the
+  // isDefault flag so the chat page reflects what the user set in Settings.
   useEffect(() => {
-    if (agents.length > 0 && !selectedAgent) {
-      const defaultAgent = agents.find(a => a.isDefault) || agents[0];
-      setSelectedAgent(defaultAgent);
+    if (prefsApplied.current || !user || agents.length === 0) return;
+    prefsApplied.current = true;
+
+    const prefs = user.preferences as UserPreferences | null;
+
+    if (prefs?.defaultModel) {
+      setSelectedModel(prefs.defaultModel);
     }
-  }, [agents, selectedAgent]);
+
+    const preferredAgentId = prefs?.defaultAgent;
+    const preferredAgent = preferredAgentId
+      ? agents.find(a => a.id === preferredAgentId)
+      : null;
+    setSelectedAgent(preferredAgent ?? agents.find(a => a.isDefault) ?? agents[0]);
+  }, [user, agents]);
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],

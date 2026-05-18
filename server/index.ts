@@ -156,10 +156,16 @@ app.use((req, res, next) => {
 
   // Graceful shutdown so Ctrl+C (SIGINT) and SIGTERM work cleanly.
   // Without this, Discord.js keeps the Node event loop alive indefinitely.
+  // The 1.5 s hard-exit guard handles Vite HMR keep-alive connections that
+  // would otherwise prevent httpServer.close() from ever completing.
+  let isShuttingDown = false;
   function shutdown() {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     log("Shutting down...");
     destroyDiscordClient();
     httpServer.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1500).unref();
   }
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);

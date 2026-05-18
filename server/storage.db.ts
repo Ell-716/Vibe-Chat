@@ -29,6 +29,7 @@ import type {
   TicketPriority,
   TicketStatus,
   TicketCategory,
+  UserPreferences,
 } from "@shared/schema";
 import type { IStorage } from "./storage";
 import { randomUUID } from "crypto";
@@ -274,6 +275,69 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return row;
+  }
+
+  /**
+   * Updates only the display name of a user.
+   * @param id - The user's UUID.
+   * @param name - The new display name.
+   * @returns The updated User, or undefined if not found.
+   */
+  async updateUserName(id: string, name: string): Promise<User | undefined> {
+    const [row] = await db
+      .update(users)
+      .set({ name, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return row;
+  }
+
+  /**
+   * Returns stored preferences for the user, falling back to defaults.
+   * @param id - The user's UUID.
+   * @returns The user's UserPreferences.
+   * @throws Error with statusCode 404 if user is not found.
+   */
+  async getUserPreferences(id: string): Promise<UserPreferences> {
+    const [row] = await db.select().from(users).where(eq(users.id, id));
+    if (!row) {
+      const err = Object.assign(new Error("User not found"), { statusCode: 404 });
+      throw err;
+    }
+    const defaults: UserPreferences = {
+      defaultModel: "llama-3.3-70b-versatile",
+      defaultAgent: "general",
+      appearance: "system",
+    };
+    return { ...defaults, ...((row.preferences as UserPreferences) ?? {}) };
+  }
+
+  /**
+   * Merges the supplied fields into the user's stored preferences.
+   * @param id - The user's UUID.
+   * @param prefs - Subset of UserPreferences fields to update.
+   * @returns The merged UserPreferences.
+   */
+  async updateUserPreferences(id: string, prefs: Partial<UserPreferences>): Promise<UserPreferences> {
+    const existing = await this.getUserPreferences(id);
+    const merged: UserPreferences = { ...existing, ...prefs };
+    await db
+      .update(users)
+      .set({ preferences: merged, updatedAt: new Date() })
+      .where(eq(users.id, id));
+    return merged;
+  }
+
+  /**
+   * Permanently deletes all data belonging to a user.
+   * Conversations and messages are cascade-deleted via FK constraints.
+   * Documents are cascade-deleted via FK constraint.
+   * Finally the user row itself is deleted.
+   * @param id - The user's UUID.
+   */
+  async deleteUserAccount(id: string): Promise<void> {
+    // FK ON DELETE CASCADE handles messages, documents automatically
+    await db.delete(users).where(eq(users.id, id));
   }
 
   // ─── Conversation methods ───────────────────────────────────────────────────
