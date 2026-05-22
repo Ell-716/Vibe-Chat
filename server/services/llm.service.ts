@@ -61,6 +61,32 @@ function getGenAI(): GoogleGenerativeAI {
 
 export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash" | "deepseek-v4-flash";
 
+/**
+ * Maps a raw provider SDK error to a user-friendly Error with a consistent message format.
+ * Inspects the HTTP status code and error message string to classify the failure type.
+ * @param provider - Human-readable provider name shown to the user (e.g. "Groq", "OpenAI").
+ * @param error - The caught error thrown by the provider SDK.
+ * @returns A new Error with a user-friendly message suitable for display in the UI.
+ */
+function mapLLMError(provider: string, error: unknown): Error {
+  const status = (error as any)?.status ?? (error as any)?.statusCode;
+  const msg = String((error as any)?.message ?? "").toLowerCase();
+
+  if (status === 402 || msg.includes("insufficient_balance") || msg.includes("insufficient balance")) {
+    return new Error(`${provider} API has insufficient balance. Please top up your account.`);
+  }
+  if (status === 401 || msg.includes("invalid_api_key") || msg.includes("authentication")) {
+    return new Error(`${provider} API key is invalid or missing. Please check your configuration.`);
+  }
+  if (status === 429 || msg.includes("rate_limit") || msg.includes("rate limit")) {
+    return new Error(`${provider} rate limit exceeded. Please wait a moment and try again.`);
+  }
+  if (status === 503 || msg.includes("service_unavailable") || msg.includes("service unavailable")) {
+    return new Error(`${provider} service is temporarily unavailable. Please try again or switch models.`);
+  }
+  return new Error(`Failed to get response from ${provider}. Please try again or switch to a different model.`);
+}
+
 export interface ChatMessage {
   role: string;
   content: string;
@@ -141,13 +167,16 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await getGroq().chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
-      max_tokens: 2048,
-    });
-
-    yield response.choices[0]?.message?.content || "";
+    try {
+      const response = await getGroq().chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+        max_tokens: 2048,
+      });
+      yield response.choices[0]?.message?.content || "";
+    } catch (err) {
+      throw mapLLMError("Groq", err);
+    }
     return;
   }
 
@@ -157,16 +186,19 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await getAnthropic().messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: claudeMessages,
-    });
-
-    const textContent =
-      response.content[0]?.type === "text" ? response.content[0].text : "";
-    yield textContent;
+    try {
+      const response = await getAnthropic().messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: claudeMessages,
+      });
+      const textContent =
+        response.content[0]?.type === "text" ? response.content[0].text : "";
+      yield textContent;
+    } catch (err) {
+      throw mapLLMError("Anthropic", err);
+    }
     return;
   }
 
@@ -185,8 +217,12 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
     });
 
     const lastMessage = messages[messages.length - 1];
-    const result = await geminiChat.sendMessage(lastMessage?.content || "");
-    yield result.response.text();
+    try {
+      const result = await geminiChat.sendMessage(lastMessage?.content || "");
+      yield result.response.text();
+    } catch (err) {
+      throw mapLLMError("Google", err);
+    }
     return;
   }
 
@@ -196,13 +232,16 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await getDeepSeek().chat.completions.create({
-      model: "deepseek-chat",
-      messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
-      max_tokens: 2048,
-    });
-
-    yield response.choices[0]?.message?.content || "";
+    try {
+      const response = await getDeepSeek().chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+        max_tokens: 2048,
+      });
+      yield response.choices[0]?.message?.content || "";
+    } catch (err) {
+      throw mapLLMError("DeepSeek", err);
+    }
     return;
   }
 
@@ -222,13 +261,18 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
   let continueLoop = true;
 
   while (continueLoop) {
-    const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: allMessages,
-      tools,
-      stream: false,
-      max_completion_tokens: 2048,
-    });
+    let response;
+    try {
+      response = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: allMessages,
+        tools,
+        stream: false,
+        max_completion_tokens: 2048,
+      });
+    } catch (err) {
+      throw mapLLMError("OpenAI", err);
+    }
 
     const message = response.choices[0].message;
 

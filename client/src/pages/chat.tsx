@@ -293,6 +293,13 @@ export default function ChatPage() {
               if (data.done) {
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
               }
+              if (data.error) {
+                toast({
+                  title: "Model Error",
+                  description: data.error,
+                  variant: "destructive",
+                });
+              }
             } catch (e) {
             }
           }
