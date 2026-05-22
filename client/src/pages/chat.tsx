@@ -266,7 +266,10 @@ export default function ChatPage() {
         body: JSON.stringify({ content, mcpTools, model: selectedModel, agentId: selectedAgent?.id }),
       });
 
-      if (!response.ok) throw new Error("Failed to send message");
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error || "Failed to send message");
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No reader");
@@ -293,16 +296,23 @@ export default function ChatPage() {
               if (data.done) {
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
               }
+              if (data.error) {
+                toast({
+                  title: "Model Error",
+                  description: data.error,
+                  variant: "destructive",
+                });
+              }
             } catch (e) {
             }
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error streaming message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: error?.message || "Failed to send message. Please try again.",
         variant: "destructive",
       });
     } finally {

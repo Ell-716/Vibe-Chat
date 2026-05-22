@@ -39,6 +39,16 @@ function getAnthropic(): Anthropic {
   return _anthropic;
 }
 
+let _deepseek: OpenAI | null = null;
+/** Returns the DeepSeek client (OpenAI-compatible), throwing a clear error if the key is missing. */
+function getDeepSeek(): OpenAI {
+  if (!_deepseek) {
+    if (!env.DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
+    _deepseek = new OpenAI({ apiKey: env.DEEPSEEK_API_KEY, baseURL: "https://api.deepseek.com", timeout: 30_000 });
+  }
+  return _deepseek;
+}
+
 let _genAI: GoogleGenerativeAI | null = null;
 /** Returns the Google Generative AI client, throwing a clear error if the key is missing. */
 function getGenAI(): GoogleGenerativeAI {
@@ -49,7 +59,33 @@ function getGenAI(): GoogleGenerativeAI {
   return _genAI;
 }
 
-export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash";
+export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash" | "deepseek-v4-flash";
+
+/**
+ * Maps a raw provider SDK error to a user-friendly Error with a consistent message format.
+ * Inspects the HTTP status code and error message string to classify the failure type.
+ * @param provider - Human-readable provider name shown to the user (e.g. "Groq", "OpenAI").
+ * @param error - The caught error thrown by the provider SDK.
+ * @returns A new Error with a user-friendly message suitable for display in the UI.
+ */
+function mapLLMError(provider: string, error: unknown): Error {
+  const status = (error as any)?.status ?? (error as any)?.statusCode;
+  const msg = String((error as any)?.message ?? "").toLowerCase();
+
+  if (status === 402 || msg.includes("insufficient_balance") || msg.includes("insufficient balance")) {
+    return new Error(`${provider} API has insufficient balance. Please top up your account.`);
+  }
+  if (status === 401 || msg.includes("invalid_api_key") || msg.includes("authentication")) {
+    return new Error(`${provider} API key is invalid or missing. Please check your configuration.`);
+  }
+  if (status === 429 || msg.includes("rate_limit") || msg.includes("rate limit")) {
+    return new Error(`${provider} rate limit exceeded. Please wait a moment and try again.`);
+  }
+  if (status === 503 || msg.includes("service_unavailable") || msg.includes("service unavailable")) {
+    return new Error(`${provider} service is temporarily unavailable. Please try again or switch models.`);
+  }
+  return new Error(`Failed to get response from ${provider}. Please try again or switch to a different model.`);
+}
 
 export interface ChatMessage {
   role: string;
@@ -114,7 +150,7 @@ export function buildSystemPrompt(
  *
  * Model-specific behaviour:
  * - gpt-4o-mini: Runs a tool-calling loop; yields MCP status messages and final text.
- * - llama-3.3-70b-versatile, claude-sonnet-4-6, gemini-1.5-flash: Single non-streaming call; yields full response at once.
+ * - llama-3.3-70b-versatile, claude-sonnet-4-6, gemini-1.5-flash, deepseek-v4-flash: Single non-streaming call; yields full response at once.
  *
  * The generator pattern keeps this service free of any HTTP/SSE concerns —
  * the controller is responsible for formatting and writing SSE events.
@@ -131,13 +167,16 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await getGroq().chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
-      max_tokens: 2048,
-    });
-
-    yield response.choices[0]?.message?.content || "";
+    try {
+      const response = await getGroq().chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+        max_tokens: 2048,
+      });
+      yield response.choices[0]?.message?.content || "";
+    } catch (err) {
+      throw mapLLMError("Groq", err);
+    }
     return;
   }
 
@@ -147,16 +186,19 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
       content: m.content,
     }));
 
-    const response = await getAnthropic().messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: claudeMessages,
-    });
-
-    const textContent =
-      response.content[0]?.type === "text" ? response.content[0].text : "";
-    yield textContent;
+    try {
+      const response = await getAnthropic().messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: claudeMessages,
+      });
+      const textContent =
+        response.content[0]?.type === "text" ? response.content[0].text : "";
+      yield textContent;
+    } catch (err) {
+      throw mapLLMError("Anthropic", err);
+    }
     return;
   }
 
@@ -175,8 +217,31 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
     });
 
     const lastMessage = messages[messages.length - 1];
-    const result = await geminiChat.sendMessage(lastMessage?.content || "");
-    yield result.response.text();
+    try {
+      const result = await geminiChat.sendMessage(lastMessage?.content || "");
+      yield result.response.text();
+    } catch (err) {
+      throw mapLLMError("Google", err);
+    }
+    return;
+  }
+
+  if (model === "deepseek-v4-flash") {
+    const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    try {
+      const response = await getDeepSeek().chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+        max_tokens: 2048,
+      });
+      yield response.choices[0]?.message?.content || "";
+    } catch (err) {
+      throw mapLLMError("DeepSeek", err);
+    }
     return;
   }
 
@@ -196,13 +261,18 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
   let continueLoop = true;
 
   while (continueLoop) {
-    const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: allMessages,
-      tools,
-      stream: false,
-      max_completion_tokens: 2048,
-    });
+    let response;
+    try {
+      response = await getOpenAI().chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: allMessages,
+        tools,
+        stream: false,
+        max_completion_tokens: 2048,
+      });
+    } catch (err) {
+      throw mapLLMError("OpenAI", err);
+    }
 
     const message = response.choices[0].message;
 

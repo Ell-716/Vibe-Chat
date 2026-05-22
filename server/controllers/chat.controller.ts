@@ -177,13 +177,14 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
     res.end();
   } catch (error: any) {
     console.error("Error sending message:", error);
+    const userMessage = error?.message || "Failed to send message";
     if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: userMessage })}\n\n`);
       res.end();
     } else if (error?.statusCode === 403) {
       res.status(403).json({ error: "Forbidden" });
     } else {
-      res.status(500).json({ error: "Failed to send message" });
+      res.status(500).json({ error: userMessage });
     }
   }
 }
@@ -198,6 +199,7 @@ export function getModels(_req: Request, res: Response): void {
     { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
     { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", provider: "Anthropic" },
     { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google" },
+    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", provider: "DeepSeek" },
   ]);
 }
 

@@ -16,6 +16,7 @@ export const env = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY as string | undefined,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY as string | undefined,
   GOOGLE_GEMINI_API_KEY: process.env.GOOGLE_GEMINI_API_KEY as string | undefined,
+  DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY as string | undefined,
 
   // ── ElevenLabs (TTS / STT) ────────────────────────────────────────────────
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY as string | undefined,
