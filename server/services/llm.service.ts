@@ -39,6 +39,16 @@ function getAnthropic(): Anthropic {
   return _anthropic;
 }
 
+let _deepseek: OpenAI | null = null;
+/** Returns the DeepSeek client (OpenAI-compatible), throwing a clear error if the key is missing. */
+function getDeepSeek(): OpenAI {
+  if (!_deepseek) {
+    if (!env.DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
+    _deepseek = new OpenAI({ apiKey: env.DEEPSEEK_API_KEY, baseURL: "https://api.deepseek.com", timeout: 30_000 });
+  }
+  return _deepseek;
+}
+
 let _genAI: GoogleGenerativeAI | null = null;
 /** Returns the Google Generative AI client, throwing a clear error if the key is missing. */
 function getGenAI(): GoogleGenerativeAI {
@@ -49,7 +59,7 @@ function getGenAI(): GoogleGenerativeAI {
   return _genAI;
 }
 
-export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash";
+export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash" | "deepseek-v4-flash";
 
 export interface ChatMessage {
   role: string;
@@ -114,7 +124,7 @@ export function buildSystemPrompt(
  *
  * Model-specific behaviour:
  * - gpt-4o-mini: Runs a tool-calling loop; yields MCP status messages and final text.
- * - llama-3.3-70b-versatile, claude-sonnet-4-6, gemini-1.5-flash: Single non-streaming call; yields full response at once.
+ * - llama-3.3-70b-versatile, claude-sonnet-4-6, gemini-1.5-flash, deepseek-v4-flash: Single non-streaming call; yields full response at once.
  *
  * The generator pattern keeps this service free of any HTTP/SSE concerns —
  * the controller is responsible for formatting and writing SSE events.
@@ -177,6 +187,22 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
     const lastMessage = messages[messages.length - 1];
     const result = await geminiChat.sendMessage(lastMessage?.content || "");
     yield result.response.text();
+    return;
+  }
+
+  if (model === "deepseek-v4-flash") {
+    const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    const response = await getDeepSeek().chat.completions.create({
+      model: "deepseek-chat",
+      messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+      max_tokens: 2048,
+    });
+
+    yield response.choices[0]?.message?.content || "";
     return;
   }
 

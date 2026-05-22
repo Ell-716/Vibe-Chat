@@ -198,6 +198,7 @@ export function getModels(_req: Request, res: Response): void {
     { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
     { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", provider: "Anthropic" },
     { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google" },
+    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", provider: "DeepSeek" },
   ]);
 }
 
