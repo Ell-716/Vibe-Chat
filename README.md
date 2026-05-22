@@ -25,7 +25,7 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **ElevenLabs Voice Widget** — Voice input via speech-to-text and optional voice output via TTS. A toolbar toggle enables auto-playback of AI responses.
 
 ### Level 2 — Advanced Features
-- **Multiple AI models** — Switch between Llama 3.3 70B (Groq, default), GPT-4o Mini (OpenAI), Claude Sonnet (Anthropic), and Gemini Flash (Google) from the header.
+- **Multiple AI models** — Switch between Llama 3.3 70B (Groq, default), GPT-4o Mini (OpenAI), Claude Sonnet (Anthropic), Gemini Flash (Google), and DeepSeek V4 Flash (DeepSeek) from the header.
 - **Prompt & Agent Management** — Create, edit, and delete custom agents with their own system prompts, icons, and descriptions. Five built-in agents are included (General, Coder, Writer, Analyst, Tutor).
 - **Support Workflow Automation** — Full support dashboard at `/support`: ticket creation, AI-powered categorisation, priority and sentiment analysis, smart agent routing, SLA deadlines, escalation rules, AI-suggested responses, and aggregate stats.
 - **Multi-channel support (Discord + Email)** — A Discord bot responds to DMs and @mentions. EmailJS sends customer notifications on ticket creation and agent replies.
@@ -200,6 +200,7 @@ npm run dev
 | `OPENAI_API_KEY` | Optional | Enables GPT-4o Mini model and support ticket AI analysis. |
 | `ANTHROPIC_API_KEY` | Optional | Enables Claude Sonnet model. |
 | `GOOGLE_GEMINI_API_KEY` | Optional | Enables Gemini Flash model. |
+| `DEEPSEEK_API_KEY` | Optional | Enables DeepSeek V4 Flash model. |
 | `ELEVENLABS_API_KEY` | Optional | Enables voice input (STT) and voice output (TTS). |
 | `ZAPIER_MCP_URL` | Optional | Enables Google Drive and Google Sheets MCP tools. |
 | `ZAPIER_MCP_API_KEY` | Optional | Auth key for the Zapier MCP endpoint. |

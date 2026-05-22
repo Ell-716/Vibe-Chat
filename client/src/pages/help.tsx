@@ -43,7 +43,7 @@ const FAQ_GROUPS: Array<{
       },
       {
         q: "Which AI models are available?",
-        a: "Vibe Chat supports Llama 3.3 70B (default, free), GPT-4o Mini, Claude Sonnet, and Gemini Flash. Switch between them using the model selector in the top right.",
+        a: "Vibe Chat supports Llama 3.3 70B (default, free via Groq), GPT-4o Mini, Claude Sonnet, Gemini 1.5 Flash, and DeepSeek V4 Flash. Switch between them using the model selector in the top right.",
       },
       {
         q: "Can I use different AI agents?",
