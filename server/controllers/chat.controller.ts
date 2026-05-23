@@ -128,10 +128,18 @@ export async function deleteConversation(req: Request, res: Response): Promise<v
 export async function sendMessage(req: Request, res: Response): Promise<void> {
   try {
     const conversationId = parseInt(req.params.id);
-    const { content, mcpTools, model = "llama-3.3-70b-versatile", agentId } = req.body;
+    const { content, mcpTools, model = "llama-3.3-70b-versatile", agentId, role } = req.body;
 
     if (!content || typeof content !== "string") {
       res.status(400).json({ error: "Content is required" });
+      return;
+    }
+
+    // Pre-written assistant messages (e.g. document summaries) are saved directly
+    // without triggering AI generation.
+    if (role === "assistant") {
+      const saved = await storage.createMessage(conversationId, "assistant", content);
+      res.status(201).json({ message: saved });
       return;
     }
 

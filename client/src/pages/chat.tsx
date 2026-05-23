@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Menu, Volume2, VolumeX, FileText, X } from "lucide-react";
+import { Menu, Volume2, VolumeX, FileText, X, Loader2 } from "lucide-react";
 import type { Conversation, Message, MCPTool, Agent, UserPreferences } from "@shared/schema";
 
 interface AIModel {
@@ -52,6 +52,8 @@ export default function ChatPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
   const [recentUpload, setRecentUpload] = useState<{ id: string; name: string } | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryMessageIds, setSummaryMessageIds] = useState<Set<number>>(() => new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prefsApplied = useRef(false);
   const { toast } = useToast();
@@ -329,6 +331,58 @@ export default function ChatPage() {
     handleSendMessage(suggestion);
   };
 
+  /**
+   * Calls the document summarization endpoint and saves the result as an assistant
+   * message in the conversation. Creates a new conversation if none is active.
+   * @param documentId - The ID of the document to summarize.
+   * @param documentName - The document's display name (used for loading label).
+   */
+  const handleSummarize = async (documentId: string, documentName: string) => {
+    setIsSummarizing(true);
+    setRecentUpload(null);
+
+    let conversationId = activeConversationId;
+    try {
+      // Create a conversation if none is open
+      if (!conversationId) {
+        const res = await apiRequest("POST", "/api/conversations", { title: `Summary: ${documentName}` });
+        const newConversation = await res.json();
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+        setActiveConversationId(newConversation.id);
+        conversationId = newConversation.id;
+      }
+
+      // Fetch the summary from the dedicated endpoint
+      const res = await apiRequest("POST", `/api/documents/${documentId}/summarize`, { model: selectedModel });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to summarize document");
+      }
+      const { summary } = await res.json();
+
+      // Persist as an assistant message in the conversation
+      const saveRes = await apiRequest("POST", `/api/conversations/${conversationId}/messages`, {
+        content: summary,
+        role: "assistant",
+      });
+      const { message: savedMessage } = await saveRes.json();
+
+      // Mark this message ID as a summary so it gets special visual treatment
+      setSummaryMessageIds((prev) => new Set(prev).add(savedMessage.id));
+
+      // Refresh conversation to show the new message
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+    } catch (error: any) {
+      toast({
+        title: "Summarization failed",
+        description: error?.message || "Could not summarize document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   const messages = activeConversation?.messages || [];
   const showEmptyState = !activeConversationId || (messages.length === 0 && !isStreaming);
   const isLoadingConversation = activeConversationId !== null && messagesLoading;
@@ -435,10 +489,11 @@ export default function ChatPage() {
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef}
               voiceResponseEnabled={voiceResponseEnabled}
+              summaryMessageIds={summaryMessageIds}
             />
           )}
 
-          {recentUpload && (
+          {(recentUpload || isSummarizing) && (
             <div className="px-4 pb-1">
               <div className="mx-auto max-w-3xl">
                 <div
@@ -449,24 +504,33 @@ export default function ChatPage() {
                     borderRadius: "20px",
                     padding: "8px 16px",
                     fontFamily: "DM Sans, sans-serif",
-                    cursor: "pointer",
+                    cursor: isSummarizing ? "default" : "pointer",
+                    opacity: isSummarizing ? 0.8 : 1,
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.2)"; }}
+                  onMouseEnter={(e) => { if (!isSummarizing) (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.2)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.1)"; }}
-                  onClick={() => handleSendMessage("Please summarize this document")}
+                  onClick={() => { if (!isSummarizing && recentUpload) handleSummarize(recentUpload.id, recentUpload.name); }}
                 >
-                  <FileText size={16} style={{ color: "rgb(0,180,216)", flexShrink: 0 }} />
+                  {isSummarizing ? (
+                    <Loader2 size={16} style={{ color: "rgb(0,180,216)", flexShrink: 0 }} className="animate-spin" />
+                  ) : (
+                    <FileText size={16} style={{ color: "rgb(0,180,216)", flexShrink: 0 }} />
+                  )}
                   <span className="text-sm text-foreground">
-                    Summarize &ldquo;{recentUpload.name}&rdquo;
+                    {isSummarizing
+                      ? `Summarizing \u201c${recentUpload?.name ?? "document"}\u201d\u2026`
+                      : `Summarize \u201c${recentUpload?.name}\u201d`}
                   </span>
-                  <button
-                    type="button"
-                    className="ml-1 text-muted-foreground hover:text-foreground transition-colors leading-none"
-                    onClick={(e) => { e.stopPropagation(); setRecentUpload(null); }}
-                    aria-label="Dismiss"
-                  >
-                    <X size={14} />
-                  </button>
+                  {!isSummarizing && (
+                    <button
+                      type="button"
+                      className="ml-1 text-muted-foreground hover:text-foreground transition-colors leading-none"
+                      onClick={(e) => { e.stopPropagation(); setRecentUpload(null); }}
+                      aria-label="Dismiss"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

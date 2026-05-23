@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Bot, Copy, Check, Volume2, VolumeX, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TypingIndicator } from "@/components/typing-indicator";
@@ -11,6 +12,8 @@ interface MessageListProps {
   isStreaming: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement>;
   voiceResponseEnabled?: boolean;
+  /** Set of message IDs that should be rendered with document-summary visual treatment. */
+  summaryMessageIds?: Set<number>;
 }
 
 let currentAudio: HTMLAudioElement | null = null;
@@ -91,10 +94,13 @@ function formatContent(content: string): { type: "text" | "code"; content: strin
  * Renders a single chat message bubble with copy and TTS speak actions.
  * User messages are right-aligned; assistant messages are left-aligned with a bot avatar.
  * When isStreaming is true, an animated cursor is appended to indicate in-progress generation.
+ * When isSummary is true, a "📄 Document Summary" label is shown above the bubble and
+ * the bubble uses a wider max-width (85%) to accommodate structured summary content.
  * @param message - The message record to render.
  * @param isStreaming - Whether this bubble is currently being streamed (shows cursor).
+ * @param isSummary - Whether this message is a document summary with special styling.
  */
-function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
+function MessageBubble({ message, isStreaming = false, isSummary = false }: { message: Message; isStreaming?: boolean; isSummary?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -178,11 +184,39 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
 
   /**
    * Renders message content as interleaved text spans and syntax-highlighted code blocks.
+   * Summary messages bypass the code-block splitter and use ReactMarkdown directly so that
+   * ## headings and bullet points render correctly.
    * codeBlockIndex tracks each code block's position so copy buttons target the right block.
    * @param content - Raw message string.
    * @returns Array of React nodes ready to render inside the message bubble.
    */
   const renderContent = (content: string) => {
+    // Summary messages contain structured markdown — render with ReactMarkdown
+    if (isSummary) {
+      return (
+        <ReactMarkdown
+          components={{
+            h2: ({ children }) => (
+              <h2 className="text-base font-bold mt-4 mb-1" style={{ color: "rgb(0,180,216)" }}>
+                {children}
+              </h2>
+            ),
+            ul: ({ children }) => (
+              <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>
+            ),
+            li: ({ children }) => <li className="text-[15px] leading-relaxed">{children}</li>,
+            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      );
+    }
+
     const parts = formatContent(content);
     // Separate counter from array index so code blocks keep their own stable copy-button IDs
     let codeBlockIndex = 0;
@@ -235,63 +269,76 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
         </div>
       )}
 
+      {/* Outer column wrapper controls max-width; widens to 85% for summary messages */}
       <div
-        className="group relative text-[15px] leading-relaxed"
-        style={isUser ? {
-          maxWidth: "75%",
-          padding: "12px 16px",
-          fontFamily: "'DM Sans', system-ui, sans-serif",
-          background: "var(--bubble-user-bg)",
-          border: "1px solid var(--bubble-user-border)",
-          borderRadius: "18px 18px 4px 18px",
-          color: "var(--bubble-user-color)",
-        } : {
-          maxWidth: "75%",
-          padding: "12px 16px",
-          fontFamily: "'DM Sans', system-ui, sans-serif",
-          background: "var(--bubble-ai-bg)",
-          borderLeft: "3px solid var(--bubble-ai-border-color)",
-          borderRadius: "18px 18px 18px 4px",
-          color: "var(--bubble-ai-color)",
-          boxShadow: "var(--bubble-ai-shadow)",
-        }}
+        className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
+        style={{ maxWidth: isSummary ? "85%" : "75%" }}
       >
-        <div>
-          {renderContent(message.content)}
-          {isStreaming && (
-            <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+        {isSummary && (
+          <span
+            className="text-xs font-medium px-2"
+            style={{ color: "rgb(0,180,216)", fontFamily: "'DM Sans', system-ui, sans-serif" }}
+          >
+            📄 Document Summary
+          </span>
+        )}
+
+        <div
+          className="group relative text-[15px] leading-relaxed w-full"
+          style={isUser ? {
+            padding: "12px 16px",
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+            background: "var(--bubble-user-bg)",
+            border: "1px solid var(--bubble-user-border)",
+            borderRadius: "18px 18px 4px 18px",
+            color: "var(--bubble-user-color)",
+          } : {
+            padding: "12px 16px",
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+            background: "var(--bubble-ai-bg)",
+            borderLeft: "3px solid var(--bubble-ai-border-color)",
+            borderRadius: "18px 18px 18px 4px",
+            color: "var(--bubble-ai-color)",
+            boxShadow: "var(--bubble-ai-shadow)",
+          }}
+        >
+          <div>
+            {renderContent(message.content)}
+            {isStreaming && (
+              <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse" />
+            )}
+          </div>
+
+          {!isUser && !isStreaming && (
+            <div className="absolute -right-20 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                onClick={handleSpeak}
+                disabled={isLoading}
+                data-testid="button-speak-message"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isPlaying ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
+                onClick={handleCopy}
+                data-testid="button-copy-message"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
           )}
         </div>
-
-        {!isUser && !isStreaming && (
-          <div className="absolute -right-20 top-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
-              onClick={handleSpeak}
-              disabled={isLoading}
-              data-testid="button-speak-message"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isPlaying ? (
-                <VolumeX className="h-4 w-4" />
-              ) : (
-                <Volume2 className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
-              onClick={handleCopy}
-              data-testid="button-copy-message"
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -309,7 +356,7 @@ function MessageBubble({ message, isStreaming = false }: { message: Message; isS
  * @param messagesEndRef - Ref attached to the bottom sentinel div for scroll-to-bottom.
  * @param voiceResponseEnabled - Whether to auto-play TTS after each assistant response.
  */
-export function MessageList({ messages, streamingMessage, isStreaming, messagesEndRef, voiceResponseEnabled }: MessageListProps) {
+export function MessageList({ messages, streamingMessage, isStreaming, messagesEndRef, voiceResponseEnabled, summaryMessageIds }: MessageListProps) {
   const lastPlayedMessageIdRef = useRef<number | null>(null);
   const wasStreamingRef = useRef(false);
 
@@ -342,7 +389,11 @@ export function MessageList({ messages, streamingMessage, isStreaming, messagesE
     <ScrollArea className="flex-1 px-4 md:px-6">
       <div className="mx-auto max-w-3xl py-6 space-y-6">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isSummary={summaryMessageIds?.has(message.id) ?? false}
+          />
         ))}
 
         {isStreaming && streamingMessage && (
