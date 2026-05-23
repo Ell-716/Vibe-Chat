@@ -4,6 +4,7 @@ import {
   processDocument,
   getDocuments,
   deleteDocument,
+  summarizeDocument,
 } from "../services/rag.service";
 import { listMCPTools, executeMCPTool } from "../services/mcp.service";
 import { env } from "../config/env";
@@ -66,6 +67,40 @@ export function removeDocument(req: Request, res: Response): void {
     res.json({ success: true });
   } else {
     res.status(404).json({ error: "Document not found" });
+  }
+}
+
+/**
+ * POST /api/documents/:id/summarize
+ * Generates a structured summary of an uploaded document using the selected LLM.
+ * Uses a direct summarization for small documents (≤ 10 chunks) or a map-reduce
+ * strategy for larger ones.
+ * @param req.params.id - The document ID to summarize.
+ * @param req.body.model - The AI model identifier to use; defaults to llama-3.3-70b-versatile.
+ */
+export async function summarizeDocumentHandler(req: Request, res: Response): Promise<void> {
+  const documentId = req.params.id;
+  const model = (req.body.model as string) || "llama-3.3-70b-versatile";
+  const userId = req.user!.id;
+
+  try {
+    const summary = await summarizeDocument(documentId, userId, model);
+    res.json({ summary, documentId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (message.includes("not found") || message.includes("access denied")) {
+      res.status(404).json({ error: message });
+      return;
+    }
+    if (message.includes("No content chunks")) {
+      res.status(400).json({
+        error: "Document has not been processed yet. Please wait a moment and try again.",
+      });
+      return;
+    }
+    console.error("Document summarization error:", error);
+    res.status(500).json({ error: message });
   }
 }
 
