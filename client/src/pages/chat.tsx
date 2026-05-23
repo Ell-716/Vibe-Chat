@@ -339,16 +339,17 @@ export default function ChatPage() {
    */
   const handleSummarize = async (documentId: string, documentName: string) => {
     setIsSummarizing(true);
-    setRecentUpload(null);
+    // Keep recentUpload intact so the chip can show the real filename while loading.
+    // It is cleared in the finally block once the operation completes.
 
     let conversationId = activeConversationId;
     try {
-      // Create a conversation if none is open
+      // Create a conversation if none is open, but don't navigate yet — wait until
+      // the summary is saved so the view opens with the message already present.
       if (!conversationId) {
         const res = await apiRequest("POST", "/api/conversations", { title: `Summary: ${documentName}` });
         const newConversation = await res.json();
         queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-        setActiveConversationId(newConversation.id);
         conversationId = newConversation.id;
       }
 
@@ -370,7 +371,9 @@ export default function ChatPage() {
       // Mark this message ID as a summary so it gets special visual treatment
       setSummaryMessageIds((prev) => new Set(prev).add(savedMessage.id));
 
-      // Refresh conversation to show the new message
+      // Navigate to the conversation now that the message is saved, then refresh.
+      // This ensures the view switches to a conversation that already contains the summary.
+      setActiveConversationId(conversationId);
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
     } catch (error: any) {
       toast({
@@ -380,6 +383,7 @@ export default function ChatPage() {
       });
     } finally {
       setIsSummarizing(false);
+      setRecentUpload(null);
     }
   };
 
