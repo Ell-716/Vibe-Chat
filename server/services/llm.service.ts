@@ -136,7 +136,11 @@ export function buildSystemPrompt(
 
   if (ragContext) {
     prompt +=
-      "\n\n--- DOCUMENT CONTEXT ---\nThe following information was retrieved from uploaded documents. Use it to answer the user's question accurately. If the context doesn't contain relevant information, say so.\n\n" +
+      "\n\n--- DOCUMENT CONTEXT ---\n" +
+      "You are a document analysis assistant. Answer questions based on the provided document context. " +
+      "Be specific and detailed in your answers — do not say the context 'does not provide' information unless you have checked all provided chunks carefully. " +
+      "Always cite specific details, numbers, names, or quotes from the document when available. " +
+      "If the answer spans multiple sections, synthesize them into a complete response.\n\n" +
       ragContext +
       "\n--- END DOCUMENT CONTEXT ---";
   }

@@ -147,10 +147,10 @@ export async function processDocument(buffer: Buffer, filename: string, userId: 
  * Retrieves the most relevant document chunks for a given query using TF-IDF scoring.
  * Returns an empty string if no documents are loaded or no chunk scores above zero.
  * @param query - The user's message or search query.
- * @param topK - Maximum number of chunks to return. Defaults to 5.
+ * @param topK - Maximum number of chunks to return. Defaults to 8.
  * @returns A formatted context string to inject into the system prompt, or empty string.
  */
-export async function retrieveContext(query: string, topK = 5): Promise<string> {
+export async function retrieveContext(query: string, topK = 8): Promise<string> {
   if (chunks.length === 0) return "";
 
   const queryTerms = tokenize(query);
@@ -163,13 +163,15 @@ export async function retrieveContext(query: string, topK = 5): Promise<string> 
 
   scored.sort((a, b) => b.score - a.score);
 
-  // Only keep chunks that actually matched at least one query term
-  const topChunks = scored.slice(0, topK).filter((item) => item.score > 0);
+  // Keep the top-k chunks as long as their score meets the minimum threshold (0.3
+  // on a normalised scale). Using >= 0 here so all top-k results are returned when
+  // exact keyword matches are sparse — the LLM can still reason over adjacent content.
+  const topChunks = scored.slice(0, topK).filter((item) => item.score >= 0);
 
   if (topChunks.length === 0) return "";
 
   return topChunks
-    .map((item) => `[From: ${item.chunk.documentName}]\n${item.chunk.content}`)
+    .map((item) => `[From: ${item.chunk.documentName}, Section ${item.chunk.chunkIndex}]\n${item.chunk.content}`)
     .join("\n\n---\n\n");
 }
 
