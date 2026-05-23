@@ -290,7 +290,7 @@ export function ChatSidebar({
         </ScrollArea>
 
         {documents.length > 0 && (
-          <div className="border-t border-sidebar-border px-2 py-2">
+          <div className="border-t px-2 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
             <Button
               variant="ghost"
               onClick={() => setDocsExpanded(!docsExpanded)}
