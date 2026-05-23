@@ -1,4 +1,6 @@
 import { PDFParse } from "pdf-parse";
+import { chat } from "./llm.service";
+import type { AIModel } from "./llm.service";
 
 interface DocumentChunk {
   id: string;
@@ -209,4 +211,112 @@ export function deleteDocument(documentId: string, userId: string): boolean {
  */
 export function hasDocuments(): boolean {
   return chunks.length > 0;
+}
+
+/**
+ * Collects all output from the `chat` async generator into a single string.
+ * @param gen - The async generator returned by `chat()`.
+ * @returns The concatenated response text.
+ */
+async function collectChatOutput(gen: AsyncGenerator<string>): Promise<string> {
+  let result = "";
+  for await (const chunk of gen) {
+    result += chunk;
+  }
+  return result;
+}
+
+/**
+ * Generates a structured summary of a document using the selected LLM.
+ *
+ * For documents with 10 or fewer chunks the full text is sent in a single LLM
+ * call. For larger documents a map-reduce strategy is used: chunks are batched
+ * (10 per batch), each batch is summarised independently (map phase), and the
+ * resulting partial summaries are then combined into one final summary (reduce
+ * phase).
+ *
+ * @param documentId - The ID of the document to summarise.
+ * @param userId - The authenticated user's UUID (used to verify ownership).
+ * @param model - The AI model identifier to use for LLM calls.
+ * @returns A formatted markdown summary string.
+ * @throws If the document is not found, not owned by the user, or has no chunks.
+ */
+export async function summarizeDocument(
+  documentId: string,
+  userId: string,
+  model: string
+): Promise<string> {
+  const doc = documents.get(documentId);
+  if (!doc || doc.userId !== userId) {
+    throw new Error("Document not found or access denied.");
+  }
+
+  const docChunks = chunks.filter((c) => c.documentId === documentId);
+  if (docChunks.length === 0) {
+    throw new Error("No content chunks found for this document.");
+  }
+
+  const aiModel = model as AIModel;
+  const BATCH_SIZE = 10;
+
+  // Small document: summarize all chunks in a single LLM call
+  if (docChunks.length <= BATCH_SIZE) {
+    const fullText = docChunks.map((c) => c.content).join("\n\n");
+    const prompt =
+      "Summarize the following document concisely, capturing key points, main arguments, and important details:\n\n" +
+      fullText;
+
+    const gen = chat({
+      messages: [{ role: "user", content: prompt }],
+      model: aiModel,
+      systemPrompt: "You are a helpful summarization assistant.",
+    });
+
+    return collectChatOutput(gen);
+  }
+
+  // Large document: map phase — summarize each batch independently
+  const batchSummaries: string[] = [];
+
+  for (let i = 0; i < docChunks.length; i += BATCH_SIZE) {
+    const batch = docChunks.slice(i, i + BATCH_SIZE);
+    const batchText = batch.map((c) => c.content).join("\n\n");
+    const mapPrompt =
+      "Summarize the following section of a document concisely, capturing key points, main arguments, and important details:\n\n" +
+      batchText;
+
+    const gen = chat({
+      messages: [{ role: "user", content: mapPrompt }],
+      model: aiModel,
+      systemPrompt: "You are a helpful summarization assistant.",
+    });
+
+    const summary = await collectChatOutput(gen);
+    batchSummaries.push(summary);
+  }
+
+  // Reduce phase — combine batch summaries into a final structured summary
+  const combinedSummaries = batchSummaries
+    .map((s, idx) => `Section ${idx + 1}:\n${s}`)
+    .join("\n\n");
+
+  const reducePrompt =
+    `You have been given section summaries of a large document. Create a comprehensive final summary that includes:\n\n` +
+    `## Overview\n` +
+    `A 2-3 sentence overview of what this document is about.\n\n` +
+    `## Key Points\n` +
+    `The most important points from the document.\n\n` +
+    `## Main Topics\n` +
+    `The main topics or sections covered.\n\n` +
+    `## Key Takeaways\n` +
+    `3-5 actionable or notable takeaways.\n\n` +
+    `Section summaries:\n${combinedSummaries}`;
+
+  const reduceGen = chat({
+    messages: [{ role: "user", content: reducePrompt }],
+    model: aiModel,
+    systemPrompt: "You are a helpful summarization assistant.",
+  });
+
+  return collectChatOutput(reduceGen);
 }
