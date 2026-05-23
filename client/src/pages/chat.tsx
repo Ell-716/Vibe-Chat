@@ -436,6 +436,11 @@ export default function ChatPage() {
         isLoading={conversationsLoading}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        activeDocumentId={activeDocumentId}
+        onSelectDocument={(doc) => {
+          setActiveDocumentId(doc.id);
+          setRecentUpload({ id: doc.id, name: doc.name });
+        }}
       />
 
       <div className="flex flex-1 flex-col min-w-0">
@@ -527,50 +532,6 @@ export default function ChatPage() {
               voiceResponseEnabled={voiceResponseEnabled}
               summaryMessageIds={summaryMessageIds}
             />
-          )}
-
-          {/* Document selector pills — shown only when 2+ documents are uploaded */}
-          {documents.length >= 2 && (
-            <div className="px-4 pb-1">
-              <div className="mx-auto max-w-3xl flex items-center gap-2 flex-wrap">
-                {documents
-                  .slice()
-                  .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
-                  .slice(0, 3)
-                  .map((doc) => {
-                    const isActive = doc.id === activeDocumentId;
-                    const label = doc.name.length > 20 ? doc.name.slice(0, 20) + "…" : doc.name;
-                    return (
-                      <button
-                        key={doc.id}
-                        type="button"
-                        onClick={() => setActiveDocumentId(doc.id)}
-                        className="text-xs transition-colors"
-                        style={{
-                          padding: "4px 12px",
-                          borderRadius: "20px",
-                          fontFamily: "DM Sans, sans-serif",
-                          background: isActive ? "rgba(0,180,216,0.85)" : "transparent",
-                          border: "1px solid rgba(0,180,216,0.6)",
-                          color: isActive ? "#0a0a0a" : "rgb(0,180,216)",
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                {documents.length > 3 && (
-                  <span
-                    className="text-xs"
-                    style={{ color: "rgba(0,180,216,0.7)", fontFamily: "DM Sans, sans-serif" }}
-                  >
-                    +{documents.length - 3} more
-                  </span>
-                )}
-              </div>
-            </div>
           )}
 
           {(recentUpload || isSummarizing) && (

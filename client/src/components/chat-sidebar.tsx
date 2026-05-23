@@ -27,6 +27,8 @@ interface ChatSidebarProps {
   isLoading: boolean;
   isOpen: boolean;
   onClose: () => void;
+  activeDocumentId?: string | null;
+  onSelectDocument?: (doc: { id: string; name: string }) => void;
 }
 
 export function ChatSidebar({
@@ -40,6 +42,8 @@ export function ChatSidebar({
   isLoading,
   isOpen,
   onClose,
+  activeDocumentId,
+  onSelectDocument,
 }: ChatSidebarProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -303,25 +307,56 @@ export function ChatSidebar({
             </Button>
             {docsExpanded && (
               <div className="mt-1 space-y-0.5">
-                {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center gap-2 rounded-lg px-3 py-1.5 group"
-                    data-testid={`document-item-${doc.id}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="truncate text-xs text-sidebar-foreground flex-1">{doc.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteDocMutation.mutate(doc.id)}
-                      className="invisible group-hover:visible shrink-0"
-                      data-testid={`button-delete-doc-${doc.id}`}
+                {documents.map((doc) => {
+                  const isActive = documents.length >= 2 && doc.id === activeDocumentId;
+                  return (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 group transition-colors"
+                      style={{
+                        cursor: "pointer",
+                        borderLeft: isActive ? "2px solid rgb(0,180,216)" : "2px solid transparent",
+                        background: isActive ? "rgba(0,180,216,0.08)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.04)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent";
+                      }}
+                      onClick={() => onSelectDocument?.({ id: doc.id, name: doc.name })}
+                      data-testid={`document-item-${doc.id}`}
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <FileText
+                        className="h-3.5 w-3.5 shrink-0"
+                        style={{ color: isActive ? "rgb(0,180,216)" : undefined }}
+                      />
+                      <span
+                        className="truncate text-xs flex-1"
+                        style={{ color: isActive ? "rgb(0,180,216)" : undefined }}
+                      >
+                        {doc.name}
+                      </span>
+                      {/* Active indicator dot — only when 2+ docs so single-doc needs no marker */}
+                      {isActive && (
+                        <span
+                          className="shrink-0 rounded-full"
+                          style={{ width: 6, height: 6, background: "rgb(0,180,216)" }}
+                          aria-label="Active document"
+                        />
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => { e.stopPropagation(); deleteDocMutation.mutate(doc.id); }}
+                        className="invisible group-hover:visible shrink-0"
+                        data-testid={`button-delete-doc-${doc.id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
