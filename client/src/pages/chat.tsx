@@ -28,6 +28,15 @@ interface AIModel {
   provider: string;
 }
 
+interface RAGDocument {
+  id: string;
+  name: string;
+  userId: string;
+  uploadedAt: string;
+  chunkCount: number;
+  totalPages: number;
+}
+
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
 }
@@ -54,6 +63,7 @@ export default function ChatPage() {
   const [recentUpload, setRecentUpload] = useState<{ id: string; name: string } | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summaryMessageIds, setSummaryMessageIds] = useState<Set<number>>(() => new Set());
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prefsApplied = useRef(false);
   const { toast } = useToast();
@@ -92,6 +102,28 @@ export default function ChatPage() {
       : null;
     setSelectedAgent(preferredAgent ?? agents.find(a => a.isDefault) ?? agents[0]);
   }, [user, agents]);
+
+  const { data: documents = [] } = useQuery<RAGDocument[]>({
+    queryKey: ["/api/documents"],
+  });
+
+  // Auto-select the most recently uploaded document whenever the list changes,
+  // but only when no selection has been made yet — respects explicit user choices.
+  useEffect(() => {
+    if (documents.length === 0) {
+      setActiveDocumentId(null);
+      return;
+    }
+    // Sort by uploadedAt descending; pick the newest one as default
+    const newest = [...documents].sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    )[0];
+    setActiveDocumentId((prev) => {
+      // Keep the current selection if it still exists in the list
+      if (prev && documents.some((d) => d.id === prev)) return prev;
+      return newest.id;
+    });
+  }, [documents]);
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -267,7 +299,7 @@ export default function ChatPage() {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, mcpTools, model: selectedModel, agentId: selectedAgent?.id }),
+        body: JSON.stringify({ content, mcpTools, model: selectedModel, agentId: selectedAgent?.id, documentId: activeDocumentId }),
       });
 
       if (!response.ok) {
@@ -497,6 +529,50 @@ export default function ChatPage() {
             />
           )}
 
+          {/* Document selector pills — shown only when 2+ documents are uploaded */}
+          {documents.length >= 2 && (
+            <div className="px-4 pb-1">
+              <div className="mx-auto max-w-3xl flex items-center gap-2 flex-wrap">
+                {documents
+                  .slice()
+                  .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+                  .slice(0, 3)
+                  .map((doc) => {
+                    const isActive = doc.id === activeDocumentId;
+                    const label = doc.name.length > 20 ? doc.name.slice(0, 20) + "…" : doc.name;
+                    return (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => setActiveDocumentId(doc.id)}
+                        className="text-xs transition-colors"
+                        style={{
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontFamily: "DM Sans, sans-serif",
+                          background: isActive ? "rgba(0,180,216,0.85)" : "transparent",
+                          border: "1px solid rgba(0,180,216,0.6)",
+                          color: isActive ? "#0a0a0a" : "rgb(0,180,216)",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                {documents.length > 3 && (
+                  <span
+                    className="text-xs"
+                    style={{ color: "rgba(0,180,216,0.7)", fontFamily: "DM Sans, sans-serif" }}
+                  >
+                    +{documents.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {(recentUpload || isSummarizing) && (
             <div className="px-4 pb-1">
               <div className="mx-auto max-w-3xl">
@@ -543,7 +619,10 @@ export default function ChatPage() {
           <ChatInput
             onSendMessage={handleSendMessage}
             isStreaming={isStreaming}
-            onDocumentUploaded={setRecentUpload}
+            onDocumentUploaded={(doc) => {
+              setRecentUpload(doc);
+              setActiveDocumentId(doc.id);
+            }}
           />
         </main>
       </div>
