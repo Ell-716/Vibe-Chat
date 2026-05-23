@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Menu, Volume2, VolumeX } from "lucide-react";
+import { Menu, Volume2, VolumeX, FileText, X } from "lucide-react";
 import type { Conversation, Message, MCPTool, Agent, UserPreferences } from "@shared/schema";
 
 interface AIModel {
@@ -51,6 +51,7 @@ export default function ChatPage() {
   });
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
+  const [recentUpload, setRecentUpload] = useState<{ id: string; name: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prefsApplied = useRef(false);
   const { toast } = useToast();
@@ -200,6 +201,7 @@ export default function ChatPage() {
    * @param mcpTools - Optional MCP tool configs to attach to the request.
    */
   const handleSendMessage = async (content: string, mcpTools?: MCPTool[]) => {
+    setRecentUpload(null);
     if (!activeConversationId) {
       // No conversation yet — create one, then stream into it
       const res = await apiRequest("POST", "/api/conversations", { title: content.slice(0, 50) });
@@ -436,9 +438,44 @@ export default function ChatPage() {
             />
           )}
 
+          {recentUpload && (
+            <div className="px-4 pb-1">
+              <div className="mx-auto max-w-3xl">
+                <div
+                  className="inline-flex items-center gap-2 transition-colors"
+                  style={{
+                    background: "rgba(0,180,216,0.1)",
+                    border: "1px solid rgba(0,180,216,0.3)",
+                    borderRadius: "20px",
+                    padding: "8px 16px",
+                    fontFamily: "DM Sans, sans-serif",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.2)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.1)"; }}
+                  onClick={() => handleSendMessage("Please summarize this document")}
+                >
+                  <FileText size={16} style={{ color: "rgb(0,180,216)", flexShrink: 0 }} />
+                  <span className="text-sm text-foreground">
+                    Summarize &ldquo;{recentUpload.name}&rdquo;
+                  </span>
+                  <button
+                    type="button"
+                    className="ml-1 text-muted-foreground hover:text-foreground transition-colors leading-none"
+                    onClick={(e) => { e.stopPropagation(); setRecentUpload(null); }}
+                    aria-label="Dismiss"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <ChatInput
             onSendMessage={handleSendMessage}
             isStreaming={isStreaming}
+            onDocumentUploaded={setRecentUpload}
           />
         </main>
       </div>
