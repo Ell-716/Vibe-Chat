@@ -214,6 +214,14 @@ export function hasDocuments(): boolean {
 }
 
 /**
+ * Pauses execution for the given number of milliseconds.
+ * Used between LLM calls during map-reduce summarization to avoid hitting
+ * provider rate limits (e.g. Groq's 6 000 tokens/minute free-tier cap).
+ * @param ms - Duration to sleep in milliseconds.
+ */
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
  * Collects all output from the `chat` async generator into a single string.
  * @param gen - The async generator returned by `chat()`.
  * @returns The concatenated response text.
@@ -277,8 +285,12 @@ export async function summarizeDocument(
 
   // Large document: map phase — summarize each batch independently
   const batchSummaries: string[] = [];
+  const totalBatches = Math.ceil(docChunks.length / BATCH_SIZE);
 
   for (let i = 0; i < docChunks.length; i += BATCH_SIZE) {
+    const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+    console.log(`Summarizing batch ${batchNumber} of ${totalBatches}...`);
+
     const batch = docChunks.slice(i, i + BATCH_SIZE);
     const batchText = batch.map((c) => c.content).join("\n\n");
     const mapPrompt =
@@ -293,6 +305,9 @@ export async function summarizeDocument(
 
     const summary = await collectChatOutput(gen);
     batchSummaries.push(summary);
+
+    // Pause between batches to stay within Groq's 6 000 tokens/minute rate limit
+    await sleep(2000);
   }
 
   // Reduce phase — combine batch summaries into a final structured summary
@@ -311,6 +326,9 @@ export async function summarizeDocument(
     `## Key Takeaways\n` +
     `3-5 actionable or notable takeaways.\n\n` +
     `Section summaries:\n${combinedSummaries}`;
+
+  // Pause before the reduce call to let the rate limit recover after the map phase
+  await sleep(2000);
 
   const reduceGen = chat({
     messages: [{ role: "user", content: reducePrompt }],
