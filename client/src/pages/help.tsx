@@ -59,6 +59,14 @@ const FAQ_GROUPS: Array<{
         a: "Currently PDF files are supported. Documents are processed with RAG so the AI can answer questions based on your content.",
       },
       {
+        q: "How do I summarize a PDF?",
+        a: "After uploading a PDF, a Summarize chip appears above the chat input. Click it to generate a structured summary with Overview, Key Points, Main Topics, and Key Takeaways sections. Large documents are processed in batches automatically — this may take a minute for lengthy files.",
+      },
+      {
+        q: "How do I switch between multiple documents?",
+        a: "Expand the Documents section in the sidebar and click any document to make it the active PDF for RAG queries. The active document is highlighted in cyan. Clicking a document also shows the Summarize chip so you can summarize it on demand.",
+      },
+      {
         q: "Are my documents private?",
         a: "Yes — all uploaded documents are private to your account and never shared with other users.",
       },
