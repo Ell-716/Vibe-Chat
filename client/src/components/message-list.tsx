@@ -12,8 +12,8 @@ interface MessageListProps {
   isStreaming: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement>;
   voiceResponseEnabled?: boolean;
-  /** Set of message IDs that should be rendered with document-summary visual treatment. */
-  summaryMessageIds?: Set<number>;
+  /** Maps message ID → document name for summary visual treatment and label. */
+  summaryMessageIds?: Map<number, string>;
 }
 
 let currentAudio: HTMLAudioElement | null = null;
@@ -100,7 +100,8 @@ function formatContent(content: string): { type: "text" | "code"; content: strin
  * @param isStreaming - Whether this bubble is currently being streamed (shows cursor).
  * @param isSummary - Whether this message is a document summary with special styling.
  */
-function MessageBubble({ message, isStreaming = false, isSummary = false }: { message: Message; isStreaming?: boolean; isSummary?: boolean }) {
+function MessageBubble({ message, isStreaming = false, summaryDocName }: { message: Message; isStreaming?: boolean; summaryDocName?: string }) {
+  const isSummary = !!summaryDocName;
   const [copied, setCopied] = useState(false);
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -274,12 +275,19 @@ function MessageBubble({ message, isStreaming = false, isSummary = false }: { me
         className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
         style={{ maxWidth: isSummary ? "85%" : "75%" }}
       >
-        {isSummary && (
+        {isSummary && summaryDocName && (
           <span
-            className="text-xs font-medium px-2"
-            style={{ color: "rgb(0,180,216)", fontFamily: "'DM Sans', system-ui, sans-serif" }}
+            className="px-2"
+            style={{
+              color: "rgb(0,180,216)",
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontSize: "14px",
+              fontWeight: 600,
+              marginBottom: "8px",
+              display: "block",
+            }}
           >
-            📄 Document Summary
+            {summaryDocName.replace(/\.[^/.]+$/, "").replace(/[_+]/g, " ")} Summary
           </span>
         )}
 
@@ -392,7 +400,7 @@ export function MessageList({ messages, streamingMessage, isStreaming, messagesE
           <MessageBubble
             key={message.id}
             message={message}
-            isSummary={summaryMessageIds?.has(message.id) ?? false}
+            summaryDocName={summaryMessageIds?.get(message.id)}
           />
         ))}
 

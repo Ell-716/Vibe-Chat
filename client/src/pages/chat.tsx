@@ -62,7 +62,8 @@ export default function ChatPage() {
   const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
   const [recentUpload, setRecentUpload] = useState<{ id: string; name: string } | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [summaryMessageIds, setSummaryMessageIds] = useState<Set<number>>(() => new Set());
+  /** Maps message ID → original document name so the label can display it. */
+  const [summaryMessageIds, setSummaryMessageIds] = useState<Map<number, string>>(() => new Map());
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prefsApplied = useRef(false);
@@ -401,7 +402,7 @@ export default function ChatPage() {
       const { message: savedMessage } = await saveRes.json();
 
       // Mark this message ID as a summary so it gets special visual treatment
-      setSummaryMessageIds((prev) => new Set(prev).add(savedMessage.id));
+      setSummaryMessageIds((prev) => new Map(prev).set(savedMessage.id, documentName));
 
       // Navigate to the conversation now that the message is saved, then refresh.
       // This ensures the view switches to a conversation that already contains the summary.
