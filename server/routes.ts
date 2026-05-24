@@ -76,6 +76,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     ragController.uploadDocument
   );
   app.get("/api/documents", ragController.listDocuments);
+  app.post("/api/documents/:id/summarize", ragController.summarizeDocumentHandler);
   app.delete("/api/documents/:id", ragController.removeDocument);
 
   // ── MCP (Zapier) ──────────────────────────────────────────────────────────

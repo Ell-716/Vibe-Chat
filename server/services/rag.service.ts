@@ -1,4 +1,6 @@
 import { PDFParse } from "pdf-parse";
+import { chat } from "./llm.service";
+import type { AIModel } from "./llm.service";
 
 interface DocumentChunk {
   id: string;
@@ -145,10 +147,10 @@ export async function processDocument(buffer: Buffer, filename: string, userId: 
  * Retrieves the most relevant document chunks for a given query using TF-IDF scoring.
  * Returns an empty string if no documents are loaded or no chunk scores above zero.
  * @param query - The user's message or search query.
- * @param topK - Maximum number of chunks to return. Defaults to 5.
+ * @param topK - Maximum number of chunks to return. Defaults to 8.
  * @returns A formatted context string to inject into the system prompt, or empty string.
  */
-export async function retrieveContext(query: string, topK = 5): Promise<string> {
+export async function retrieveContext(query: string, topK = 8): Promise<string> {
   if (chunks.length === 0) return "";
 
   const queryTerms = tokenize(query);
@@ -161,13 +163,15 @@ export async function retrieveContext(query: string, topK = 5): Promise<string> 
 
   scored.sort((a, b) => b.score - a.score);
 
-  // Only keep chunks that actually matched at least one query term
-  const topChunks = scored.slice(0, topK).filter((item) => item.score > 0);
+  // Keep the top-k chunks as long as their score meets the minimum threshold (0.3
+  // on a normalised scale). Using >= 0 here so all top-k results are returned when
+  // exact keyword matches are sparse — the LLM can still reason over adjacent content.
+  const topChunks = scored.slice(0, topK).filter((item) => item.score >= 0);
 
   if (topChunks.length === 0) return "";
 
   return topChunks
-    .map((item) => `[From: ${item.chunk.documentName}]\n${item.chunk.content}`)
+    .map((item) => `[From: ${item.chunk.documentName}, Section ${item.chunk.chunkIndex}]\n${item.chunk.content}`)
     .join("\n\n---\n\n");
 }
 
@@ -209,4 +213,130 @@ export function deleteDocument(documentId: string, userId: string): boolean {
  */
 export function hasDocuments(): boolean {
   return chunks.length > 0;
+}
+
+/**
+ * Pauses execution for the given number of milliseconds.
+ * Used between LLM calls during map-reduce summarization to avoid hitting
+ * provider rate limits (e.g. Groq's 6 000 tokens/minute free-tier cap).
+ * @param ms - Duration to sleep in milliseconds.
+ */
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Collects all output from the `chat` async generator into a single string.
+ * @param gen - The async generator returned by `chat()`.
+ * @returns The concatenated response text.
+ */
+async function collectChatOutput(gen: AsyncGenerator<string>): Promise<string> {
+  let result = "";
+  for await (const chunk of gen) {
+    result += chunk;
+  }
+  return result;
+}
+
+/**
+ * Generates a structured summary of a document using the selected LLM.
+ *
+ * For documents with 10 or fewer chunks the full text is sent in a single LLM
+ * call. For larger documents a map-reduce strategy is used: chunks are batched
+ * (10 per batch), each batch is summarised independently (map phase), and the
+ * resulting partial summaries are then combined into one final summary (reduce
+ * phase).
+ *
+ * @param documentId - The ID of the document to summarise.
+ * @param userId - The authenticated user's UUID (used to verify ownership).
+ * @param model - The AI model identifier to use for LLM calls.
+ * @returns A formatted markdown summary string.
+ * @throws If the document is not found, not owned by the user, or has no chunks.
+ */
+export async function summarizeDocument(
+  documentId: string,
+  userId: string,
+  model: string
+): Promise<string> {
+  const doc = documents.get(documentId);
+  if (!doc || doc.userId !== userId) {
+    throw new Error("Document not found or access denied.");
+  }
+
+  const docChunks = chunks.filter((c) => c.documentId === documentId);
+  if (docChunks.length === 0) {
+    throw new Error("No content chunks found for this document.");
+  }
+
+  const aiModel = model as AIModel;
+  const BATCH_SIZE = 10;
+
+  // Small document: summarize all chunks in a single LLM call
+  if (docChunks.length <= BATCH_SIZE) {
+    const fullText = docChunks.map((c) => c.content).join("\n\n");
+    const prompt =
+      "Summarize the following document concisely, capturing key points, main arguments, and important details:\n\n" +
+      fullText;
+
+    const gen = chat({
+      messages: [{ role: "user", content: prompt }],
+      model: aiModel,
+      systemPrompt: "You are a helpful summarization assistant.",
+    });
+
+    return collectChatOutput(gen);
+  }
+
+  // Large document: map phase — summarize each batch independently
+  const batchSummaries: string[] = [];
+  const totalBatches = Math.ceil(docChunks.length / BATCH_SIZE);
+
+  for (let i = 0; i < docChunks.length; i += BATCH_SIZE) {
+    const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+    console.log(`Summarizing batch ${batchNumber} of ${totalBatches}...`);
+
+    const batch = docChunks.slice(i, i + BATCH_SIZE);
+    const batchText = batch.map((c) => c.content).join("\n\n");
+    const mapPrompt =
+      "Summarize the following section of a document concisely, capturing key points, main arguments, and important details:\n\n" +
+      batchText;
+
+    const gen = chat({
+      messages: [{ role: "user", content: mapPrompt }],
+      model: aiModel,
+      systemPrompt: "You are a helpful summarization assistant.",
+    });
+
+    const summary = await collectChatOutput(gen);
+    batchSummaries.push(summary);
+
+    // Pause between batches to stay within Groq's 6 000 tokens/minute rate limit
+    await sleep(2000);
+  }
+
+  // Reduce phase — combine batch summaries into a final structured summary
+  const combinedSummaries = batchSummaries
+    .map((s, idx) => `Section ${idx + 1}:\n${s}`)
+    .join("\n\n");
+
+  const reducePrompt =
+    `You have been given section summaries of a large document. Create a comprehensive final summary that includes:\n\n` +
+    `## Overview\n` +
+    `A 2-3 sentence overview of what this document is about.\n\n` +
+    `## Key Points\n` +
+    `The most important points from the document.\n\n` +
+    `## Main Topics\n` +
+    `The main topics or sections covered.\n\n` +
+    `## Key Takeaways\n` +
+    `3-5 actionable or notable takeaways.\n\n` +
+    `Section summaries:\n${combinedSummaries}`;
+
+  // Pause before the reduce call to let the rate limit recover after the map phase
+  await sleep(2000);
+
+  const reduceGen = chat({
+    messages: [{ role: "user", content: reducePrompt }],
+    model: aiModel,
+    systemPrompt: "You are a helpful summarization assistant.",
+  });
+
+  return collectChatOutput(reduceGen);
 }

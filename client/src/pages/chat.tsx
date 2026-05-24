@@ -19,13 +19,22 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Menu, Volume2, VolumeX } from "lucide-react";
+import { Menu, Volume2, VolumeX, FileText, X, Loader2 } from "lucide-react";
 import type { Conversation, Message, MCPTool, Agent, UserPreferences } from "@shared/schema";
 
 interface AIModel {
   id: string;
   name: string;
   provider: string;
+}
+
+interface RAGDocument {
+  id: string;
+  name: string;
+  userId: string;
+  uploadedAt: string;
+  chunkCount: number;
+  totalPages: number;
 }
 
 interface ConversationWithMessages extends Conversation {
@@ -51,6 +60,11 @@ export default function ChatPage() {
   });
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [agentSettingsOpen, setAgentSettingsOpen] = useState(false);
+  const [recentUpload, setRecentUpload] = useState<{ id: string; name: string } | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  /** Maps message ID → original document name so the label can display it. */
+  const [summaryMessageIds, setSummaryMessageIds] = useState<Map<number, string>>(() => new Map());
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prefsApplied = useRef(false);
   const { toast } = useToast();
@@ -89,6 +103,28 @@ export default function ChatPage() {
       : null;
     setSelectedAgent(preferredAgent ?? agents.find(a => a.isDefault) ?? agents[0]);
   }, [user, agents]);
+
+  const { data: documents = [] } = useQuery<RAGDocument[]>({
+    queryKey: ["/api/documents"],
+  });
+
+  // Auto-select the most recently uploaded document whenever the list changes,
+  // but only when no selection has been made yet — respects explicit user choices.
+  useEffect(() => {
+    if (documents.length === 0) {
+      setActiveDocumentId(null);
+      return;
+    }
+    // Sort by uploadedAt descending; pick the newest one as default
+    const newest = [...documents].sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    )[0];
+    setActiveDocumentId((prev) => {
+      // Keep the current selection if it still exists in the list
+      if (prev && documents.some((d) => d.id === prev)) return prev;
+      return newest.id;
+    });
+  }, [documents]);
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -200,6 +236,7 @@ export default function ChatPage() {
    * @param mcpTools - Optional MCP tool configs to attach to the request.
    */
   const handleSendMessage = async (content: string, mcpTools?: MCPTool[]) => {
+    setRecentUpload(null);
     if (!activeConversationId) {
       // No conversation yet — create one, then stream into it
       const res = await apiRequest("POST", "/api/conversations", { title: content.slice(0, 50) });
@@ -263,7 +300,7 @@ export default function ChatPage() {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, mcpTools, model: selectedModel, agentId: selectedAgent?.id }),
+        body: JSON.stringify({ content, mcpTools, model: selectedModel, agentId: selectedAgent?.id, documentId: activeDocumentId }),
       });
 
       if (!response.ok) {
@@ -327,6 +364,62 @@ export default function ChatPage() {
     handleSendMessage(suggestion);
   };
 
+  /**
+   * Calls the document summarization endpoint and saves the result as an assistant
+   * message in the conversation. Creates a new conversation if none is active.
+   * @param documentId - The ID of the document to summarize.
+   * @param documentName - The document's display name (used for loading label).
+   */
+  const handleSummarize = async (documentId: string, documentName: string) => {
+    setIsSummarizing(true);
+    // Keep recentUpload intact so the chip can show the real filename while loading.
+    // It is cleared in the finally block once the operation completes.
+
+    let conversationId = activeConversationId;
+    try {
+      // Create a conversation if none is open, but don't navigate yet — wait until
+      // the summary is saved so the view opens with the message already present.
+      if (!conversationId) {
+        const res = await apiRequest("POST", "/api/conversations", { title: `Summary: ${documentName}` });
+        const newConversation = await res.json();
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+        conversationId = newConversation.id;
+      }
+
+      // Fetch the summary from the dedicated endpoint
+      const res = await apiRequest("POST", `/api/documents/${documentId}/summarize`, { model: selectedModel });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to summarize document");
+      }
+      const { summary } = await res.json();
+
+      // Persist as an assistant message in the conversation
+      const saveRes = await apiRequest("POST", `/api/conversations/${conversationId}/messages`, {
+        content: summary,
+        role: "assistant",
+      });
+      const { message: savedMessage } = await saveRes.json();
+
+      // Mark this message ID as a summary so it gets special visual treatment
+      setSummaryMessageIds((prev) => new Map(prev).set(savedMessage.id, documentName));
+
+      // Navigate to the conversation now that the message is saved, then refresh.
+      // This ensures the view switches to a conversation that already contains the summary.
+      setActiveConversationId(conversationId);
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+    } catch (error: any) {
+      toast({
+        title: "Summarization failed",
+        description: error?.message || "Could not summarize document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSummarizing(false);
+      setRecentUpload(null);
+    }
+  };
+
   const messages = activeConversation?.messages || [];
   const showEmptyState = !activeConversationId || (messages.length === 0 && !isStreaming);
   const isLoadingConversation = activeConversationId !== null && messagesLoading;
@@ -344,6 +437,11 @@ export default function ChatPage() {
         isLoading={conversationsLoading}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        activeDocumentId={activeDocumentId}
+        onSelectDocument={(doc) => {
+          setActiveDocumentId(doc.id);
+          setRecentUpload({ id: doc.id, name: doc.name });
+        }}
       />
 
       <div className="flex flex-1 flex-col min-w-0">
@@ -433,12 +531,60 @@ export default function ChatPage() {
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef}
               voiceResponseEnabled={voiceResponseEnabled}
+              summaryMessageIds={summaryMessageIds}
             />
+          )}
+
+          {(recentUpload || isSummarizing) && (
+            <div className="px-4 pb-1">
+              <div className="mx-auto max-w-3xl">
+                <div
+                  className="inline-flex items-center gap-2 transition-colors"
+                  style={{
+                    background: "rgba(0,180,216,0.1)",
+                    border: "1px solid rgba(0,180,216,0.3)",
+                    borderRadius: "20px",
+                    padding: "8px 16px",
+                    fontFamily: "DM Sans, sans-serif",
+                    cursor: isSummarizing ? "default" : "pointer",
+                    opacity: isSummarizing ? 0.8 : 1,
+                  }}
+                  onMouseEnter={(e) => { if (!isSummarizing) (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.2)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,180,216,0.1)"; }}
+                  onClick={() => { if (!isSummarizing && recentUpload) handleSummarize(recentUpload.id, recentUpload.name); }}
+                >
+                  {isSummarizing ? (
+                    <Loader2 size={16} style={{ color: "rgb(0,180,216)", flexShrink: 0 }} className="animate-spin" />
+                  ) : (
+                    <FileText size={16} style={{ color: "rgb(0,180,216)", flexShrink: 0 }} />
+                  )}
+                  <span className="text-sm text-foreground">
+                    {isSummarizing
+                      ? `Summarizing \u201c${recentUpload?.name ?? "document"}\u201d\u2026`
+                      : `Summarize \u201c${recentUpload?.name}\u201d`}
+                  </span>
+                  {!isSummarizing && (
+                    <button
+                      type="button"
+                      className="ml-1 text-muted-foreground hover:text-foreground transition-colors leading-none"
+                      onClick={(e) => { e.stopPropagation(); setRecentUpload(null); }}
+                      aria-label="Dismiss"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           <ChatInput
             onSendMessage={handleSendMessage}
             isStreaming={isStreaming}
+            onDocumentUploaded={(doc) => {
+              setRecentUpload(doc);
+              setActiveDocumentId(doc.id);
+            }}
           />
         </main>
       </div>

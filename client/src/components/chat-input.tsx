@@ -12,6 +12,8 @@ import type { MCPTool } from "@shared/schema";
 interface ChatInputProps {
   onSendMessage: (content: string, mcpTools?: MCPTool[]) => void;
   isStreaming: boolean;
+  /** Called with metadata about the newly uploaded document on successful PDF upload. */
+  onDocumentUploaded?: (doc: { id: string; name: string }) => void;
 }
 
 /**
@@ -22,7 +24,7 @@ interface ChatInputProps {
  * @param onSendMessage - Called with the trimmed message text and optional MCP tools.
  * @param isStreaming - Disables input while the AI is generating a response.
  */
-export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
+export function ChatInput({ onSendMessage, isStreaming, onDocumentUploaded }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [mcpToolsOpen, setMcpToolsOpen] = useState(false);
   const [selectedTools, setSelectedTools] = useState<MCPTool[]>([]);
@@ -72,6 +74,7 @@ export function ChatInput({ onSendMessage, isStreaming }: ChatInputProps) {
       const doc = await res.json();
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       toast({ title: `"${doc.name}" uploaded`, description: `${doc.totalPages} pages, ${doc.chunkCount} sections indexed` });
+      onDocumentUploaded?.({ id: doc.id, name: doc.name });
     } catch {
       toast({ title: "Failed to upload document", variant: "destructive" });
     } finally {
