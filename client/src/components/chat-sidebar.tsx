@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, MessageSquare, MoreHorizontal, Pencil, Trash2, X, Check, FileText, ChevronDown, ChevronRight, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -165,6 +166,17 @@ export function ChatSidebar({
             <Plus className="mr-2 h-4 w-4" />
             New Chat
           </Button>
+
+          <Link href="/multi-agent">
+            <Button
+              variant="ghost"
+              className="w-full justify-start font-medium text-sidebar-foreground hover:bg-sidebar-accent transition-colors mt-1"
+              data-testid="button-multi-agent"
+            >
+              <Users className="mr-2 h-4 w-4" style={{ color: "#00B4D8" }} />
+              Multi-Agent
+            </Button>
+          </Link>
         </div>
 
         <ScrollArea className="flex-1 px-2 py-4">
