@@ -32,10 +32,8 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **Voice Response to Text** — AI responses are read aloud automatically after each message (markdown stripped before synthesis).
 
 ### Level 3 — RAG & PDF Summarization
-- **Document-grounded answers** — Upload PDF files; the server parses, chunks, and indexes them with TF-IDF keyword scoring. Each message retrieves the top-k most relevant chunks and injects them into the system prompt as context. Documents are scoped to the uploading user.
+- **RAG Integration** — Upload PDF files; the server parses, chunks, and indexes them with TF-IDF keyword scoring. Each message retrieves the top-k most relevant chunks and injects them into the system prompt as context. Documents are scoped to the uploading user.
 - **PDF Summarization** — After uploading, a "Summarize" chip appears above the chat input. Clicking it calls a dedicated `/api/documents/:id/summarize` endpoint that uses a map-reduce pattern: documents with more than 10 chunks are split into batches of 10, each batch summarized independently, then combined into a structured final summary (Overview, Key Points, Main Topics, Key Takeaways). A 2-second delay between LLM calls prevents hitting Groq's free-tier rate limit.
-- **Sidebar document switching** — Click any document in the sidebar to make it the active PDF for RAG queries and trigger the summarize chip for it. The active document is highlighted with a cyan indicator.
-- **Persistent summary messages** — Summaries are saved as assistant messages in the conversation so they appear in chat history across sessions.
 
 ### Settings & Help
 - **Settings page** — Full settings UI at `/settings` with five tabs: Account, Preferences, Appearance, Data & Privacy, and Danger Zone.
