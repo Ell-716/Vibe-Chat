@@ -154,15 +154,19 @@ export async function runAgentTurn(
         `Build constructively on the other participant's ideas. Acknowledge what they said, add new dimensions, ` +
         `and help move toward a richer shared understanding. Keep responses focused and under 200 words.`;
 
-  const systemPrompt = `${agent.systemPrompt}\n\n${modeInstruction}`;
+  const systemPrompt =
+    `${agent.systemPrompt}\n\n${modeInstruction}\n\n` +
+    `IMPORTANT: Never begin your response with your name or role in brackets (e.g. do NOT write "[${agent.name}]:" or any "[Label]:" prefix). Respond directly without any such prefix.`;
 
   // Map AgentTurn history to alternating user/assistant messages so the model
   // understands the conversation flow. Turns by the current agent are framed as
   // "assistant" messages; turns by the other agent are framed as "user" messages.
+  // Note: content is passed as-is (no [Name]: prefix) so the model does not learn
+  // to mirror that pattern in its own responses.
   const historyMessages: ChatCompletionMessageParam[] = request.history.map(
     (turn) => ({
       role: turn.agentId === currentAgentId ? "assistant" : "user",
-      content: `[${turn.agentName}]: ${turn.content}`,
+      content: turn.content,
     })
   );
 
@@ -182,7 +186,10 @@ export async function runAgentTurn(
     max_tokens: 512,
   });
 
-  const content = response.choices[0]?.message?.content ?? "";
+  // Strip any self-referencing prefix the model may prepend, e.g.
+  // "[Code Expert]:", "[Agent Name]:", or "[Some Label]:" at the very start.
+  const raw = response.choices[0]?.message?.content ?? "";
+  const content = raw.replace(/^\s*\[[^\]]*\]\s*:\s*/, "");
 
   return {
     agentId: currentAgentId,
