@@ -637,7 +637,7 @@ export default function MultiAgentPage() {
     >
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header
-        className="flex items-center gap-4 px-6 py-4 shrink-0"
+        className="relative flex items-center px-6 py-4 shrink-0"
         style={{ borderBottom: "1px solid hsl(var(--border))" }}
       >
         <Link href="/">
@@ -651,7 +651,7 @@ export default function MultiAgentPage() {
           </button>
         </Link>
 
-        <div className="flex flex-col">
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
           <h1
             style={{
               fontFamily: "'Orbitron', system-ui, sans-serif",
@@ -675,7 +675,7 @@ export default function MultiAgentPage() {
         {/* Live turn counter */}
         {(isRunning || isFinished) && (
           <div
-            className="ml-auto flex items-center gap-2 text-xs px-3 py-1.5 rounded-full"
+            className="ml-auto flex items-center gap-2 text-xs px-3 py-1.5 rounded-full shrink-0"
             style={{
               background: `${CYAN}18`,
               border: `1px solid ${CYAN}40`,
