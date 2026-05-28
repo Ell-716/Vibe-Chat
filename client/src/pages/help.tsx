@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Rocket, FileText, Bot, ChevronDown } from "lucide-react";
+import { ArrowLeft, Rocket, FileText, Bot, ChevronDown, Users } from "lucide-react";
 
 // ── Design tokens (mirrors settings.tsx pattern) ──────────────────────────────
 
@@ -25,6 +25,11 @@ const QUICK_CARDS = [
     Icon: Bot,
     title: "Switch Agents",
     description: "Choose a specialized AI agent from the top bar for different tasks.",
+  },
+  {
+    Icon: Users,
+    title: "Multi-Agent",
+    description: "Click Multi-Agent in the sidebar to watch two AI agents debate or collaborate on any topic.",
   },
 ];
 
@@ -86,6 +91,27 @@ const FAQ_GROUPS: Array<{
       {
         q: "What can I do with Google Drive integration?",
         a: "Using the MCP Tools feature you can browse Google Drive files and add rows to Google Sheets directly from the chat.",
+      },
+    ],
+  },
+  {
+    category: "Multi-Agent",
+    items: [
+      {
+        q: "What is Multi-Agent Conversation?",
+        a: "Multi-Agent lets you pick two AI agents and watch them debate or collaborate on any topic for 6 sequential turns. Each agent has a distinct personality — General Assistant, Creative Writer, Data Analyst, Learning Tutor, or Code Expert.",
+      },
+      {
+        q: "How do I start a multi-agent conversation?",
+        a: 'Click "Multi-Agent" in the sidebar to open the page. Select an agent in the left panel (Agent 1) and a different agent in the right panel (Agent 2). Type a topic in the bottom bar, choose Debate or Collaborate mode, then press Start.',
+      },
+      {
+        q: "What is the difference between Debate and Collaborate?",
+        a: "In Debate mode the agents argue opposing perspectives, challenge each other's points, and defend their positions. In Collaborate mode they build on each other's ideas constructively to reach a richer shared understanding.",
+      },
+      {
+        q: "What happens after 6 turns?",
+        a: "A \"Conversation complete\" banner appears with three options: Continue (6 more turns from where you left off), Redirect (keep the same agents but clear the topic to start fresh), or Stop (reset everything).",
       },
     ],
   },
