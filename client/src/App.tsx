@@ -9,6 +9,7 @@ import ChatPage from "@/pages/chat";
 import SupportPage from "@/pages/support";
 import SettingsPage from "@/pages/settings";
 import HelpPage from "@/pages/help";
+import MultiAgentPage from "@/pages/multi-agent";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/use-auth";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/support" component={SupportPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/help" component={HelpPage} />
+      <Route path="/multi-agent" component={MultiAgentPage} />
       <Route component={NotFound} />
     </Switch>
   );

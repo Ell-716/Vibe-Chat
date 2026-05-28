@@ -6,6 +6,7 @@ import * as ragController from "./controllers/rag.controller";
 import * as supportController from "./controllers/support.controller";
 import * as authController from "./controllers/auth.controller";
 import * as userController from "./controllers/user.controller";
+import * as multiAgentController from "./controllers/multiAgent.controller";
 import { requireAuth } from "./middleware/requireAuth";
 
 /**
@@ -33,6 +34,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   );
   app.post("/auth/logout", authController.logout);
   app.get("/auth/me", authController.getMe);
+
+  // ── Multi-agent: public static config (registered before requireAuth) ─────
+  app.get("/api/multi-agent/agents", multiAgentController.getAgentConfigs);
 
   // ── Protect all /api routes ───────────────────────────────────────────────
   app.use("/api", requireAuth);
@@ -82,6 +86,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── MCP (Zapier) ──────────────────────────────────────────────────────────
   app.get("/api/mcp/tools", ragController.getMcpTools);
   app.post("/api/mcp/execute", ragController.executeMcp);
+
+  // ── Multi-agent conversation ──────────────────────────────────────────────
+  app.post("/api/multi-agent/turn", multiAgentController.runTurn);
 
   // ── Support tickets ───────────────────────────────────────────────────────
   app.get("/api/support/tickets", supportController.getTickets);

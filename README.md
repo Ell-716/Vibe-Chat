@@ -32,10 +32,10 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **Voice Response to Text** — AI responses are read aloud automatically after each message (markdown stripped before synthesis).
 
 ### Level 3 — RAG & PDF Summarization
-- **Document-grounded answers** — Upload PDF files; the server parses, chunks, and indexes them with TF-IDF keyword scoring. Each message retrieves the top-k most relevant chunks and injects them into the system prompt as context. Documents are scoped to the uploading user.
+- **RAG Integration** — Upload PDF files; the server parses, chunks, and indexes them with TF-IDF keyword scoring. Each message retrieves the top-k most relevant chunks and injects them into the system prompt as context. Documents are scoped to the uploading user.
 - **PDF Summarization** — After uploading, a "Summarize" chip appears above the chat input. Clicking it calls a dedicated `/api/documents/:id/summarize` endpoint that uses a map-reduce pattern: documents with more than 10 chunks are split into batches of 10, each batch summarized independently, then combined into a structured final summary (Overview, Key Points, Main Topics, Key Takeaways). A 2-second delay between LLM calls prevents hitting Groq's free-tier rate limit.
-- **Sidebar document switching** — Click any document in the sidebar to make it the active PDF for RAG queries and trigger the summarize chip for it. The active document is highlighted with a cyan indicator.
-- **Persistent summary messages** — Summaries are saved as assistant messages in the conversation so they appear in chat history across sessions.
+
+- **Multi-Agent Conversation** — Pick any two AI agents from the sidebar at `/multi-agent`, enter a topic, and watch them debate or collaborate for 6 sequential turns. Five agents are available: General Assistant (balanced), Creative Writer (imaginative), Data Analyst (evidence-driven), Learning Tutor (patient & clear), and Code Expert (technical). Choose **Debate** mode for opposing arguments or **Collaborate** mode for constructive idea-building. After 6 turns, use **Continue**, **Redirect** (new topic, same agents), or **Stop** to control the conversation.
 
 ### Settings & Help
 - **Settings page** — Full settings UI at `/settings` with five tabs: Account, Preferences, Appearance, Data & Privacy, and Danger Zone.
@@ -95,8 +95,13 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 /
 ├── client/                      # React SPA (Vite)
 │   ├── public/
-│   │   ├── ai-head.mp4          # Landing page video background (Runway AI generated)
-│   │   └── logo.png             # AI head logo used in empty chat state
+│   │   ├── ai-head.mp4              # Landing page video background (Runway AI generated)
+│   │   ├── logo.png                 # AI head logo used in empty chat state
+│   │   ├── general_assistant.png    # Multi-agent avatar
+│   │   ├── creative_writer.png      # Multi-agent avatar
+│   │   ├── data_analyst.png         # Multi-agent avatar
+│   │   ├── learning_tutor.png       # Multi-agent avatar
+│   │   └── code_expert.png          # Multi-agent avatar
 │   └── src/
 │       ├── App.tsx              # Root — providers + auth-gated wouter router
 │       ├── pages/
@@ -104,6 +109,7 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 │       │   ├── support.tsx      # "/support" — support dashboard
 │       │   ├── settings.tsx     # "/settings" — account, preferences, appearance
 │       │   ├── help.tsx         # "/help" — getting started guide + FAQ
+│       │   ├── multi-agent.tsx  # "/multi-agent" — two-agent debate/collaborate conversations
 │       │   ├── login.tsx        # "/login" — Google sign-in page
 │       │   └── not-found.tsx    # 404 fallback
 │       ├── components/          # Feature components
@@ -123,24 +129,26 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 │   │   ├── env.ts               # Single source of truth for process.env
 │   │   └── passport.ts          # Google OAuth strategy; serialize/deserialize user
 │   ├── controllers/
-│   │   ├── auth.controller.ts   # /auth/google, /auth/google/callback, /auth/logout, /auth/me
-│   │   ├── chat.controller.ts   # Conversations, messages, models, voice
-│   │   ├── support.controller.ts# Tickets, agents, escalation rules, stats
-│   │   ├── agent.controller.ts  # Prompt agents CRUD
-│   │   ├── rag.controller.ts    # Document upload, listing, MCP tools
-│   │   └── user.controller.ts   # Profile update, preferences, account deletion
+│   │   ├── auth.controller.ts        # /auth/google, /auth/google/callback, /auth/logout, /auth/me
+│   │   ├── chat.controller.ts        # Conversations, messages, models, voice
+│   │   ├── support.controller.ts     # Tickets, agents, escalation rules, stats
+│   │   ├── agent.controller.ts       # Prompt agents CRUD
+│   │   ├── rag.controller.ts         # Document upload, listing, MCP tools
+│   │   ├── multiAgent.controller.ts  # GET /api/multi-agent/agents, POST /api/multi-agent/turn
+│   │   └── user.controller.ts        # Profile update, preferences, account deletion
 │   ├── middleware/
-│   │   └── requireAuth.ts       # Checks req.isAuthenticated(); returns 401 if not
+│   │   └── requireAuth.ts            # Checks req.isAuthenticated(); returns 401 if not
 │   └── services/
-│       ├── auth.service.ts      # initiateGoogleAuth, handleCallback, logout, getCurrentUser
-│       ├── llm.service.ts       # All AI model calls (AsyncGenerator streaming)
-│       ├── user.service.ts      # Name/preferences validation and storage delegation
-│       ├── support.service.ts   # Ticket analysis, routing, escalation checks
-│       ├── rag.service.ts       # PDF parsing, chunking, TF-IDF retrieval (userId-scoped)
-│       ├── mcp.service.ts       # Zapier MCP JSON-RPC client
-│       ├── discord.service.ts   # Discord.js bot
-│       ├── elevenlabs.service.ts# TTS and STT
-│       └── email.service.ts     # EmailJS notifications
+│       ├── auth.service.ts           # initiateGoogleAuth, handleCallback, logout, getCurrentUser
+│       ├── llm.service.ts            # All AI model calls (AsyncGenerator streaming)
+│       ├── user.service.ts           # Name/preferences validation and storage delegation
+│       ├── support.service.ts        # Ticket analysis, routing, escalation checks
+│       ├── rag.service.ts            # PDF parsing, chunking, TF-IDF retrieval (userId-scoped)
+│       ├── multi-agent.service.ts    # AGENTS config, runAgentTurn(), AgentTurn/MultiAgentRequest types
+│       ├── mcp.service.ts            # Zapier MCP JSON-RPC client
+│       ├── discord.service.ts        # Discord.js bot
+│       ├── elevenlabs.service.ts     # TTS and STT
+│       └── email.service.ts          # EmailJS notifications
 │
 ├── shared/
 │   └── schema.ts                # Drizzle table definitions + all domain types
@@ -236,6 +244,15 @@ npm run db:push    # Push Drizzle schema changes to PostgreSQL
 - ✅ **Settings page** — Account management, per-user model/agent preferences, and light/dark/system theme switching.
 - ✅ **Help page** — Getting-started guide, grouped FAQ accordion, and link to the support ticket system.
 - ✅ **Account management** — Edit display name, manage preferences, and delete account with full data cascade.
+- ✅ **Multi-model AI support** — Llama 3.3 70B (Groq), GPT-4o Mini, Claude Sonnet, Gemini Flash, and DeepSeek V4 Flash selectable from the header.
+- ✅ **Prompt & agent management** — Create, edit, and delete custom agents with system prompts, icons, and descriptions.
+- ✅ **Support dashboard** — AI-powered ticket routing, priority/sentiment analysis, escalation rules, SLA tracking, and AI-suggested responses.
+- ✅ **Discord + Email integration** — Discord bot responds to DMs and @mentions; EmailJS sends customer notifications.
+- ✅ **Voice I/O** — ElevenLabs speech-to-text input and text-to-speech auto-playback for AI responses.
+- ✅ **MCP tools (Google Drive & Sheets)** — AI can read Drive files and update Sheets via Zapier MCP.
+- ✅ **RAG document chat** — Upload PDFs; server parses, chunks, and indexes them with TF-IDF for per-message context injection.
+- ✅ **PDF summarization** — Map-reduce summarization with structured output (Overview, Key Points, Main Topics, Key Takeaways).
+- ✅ **Multi-Agent Conversation** — Two AI agents debate or collaborate on any topic for 6 sequential turns, with Continue/Redirect/Stop controls.
 - **Data export** — Allow users to download their conversation history and uploaded documents.
 - **Conversation sharing** — Share a read-only link to a conversation with others.
 - **Email / password auth option** — Alternative to Google OAuth for self-hosted deployments.
