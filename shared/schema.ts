@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb, uuid, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -359,6 +359,25 @@ export const escalationRules = pgTable("escalation_rules", {
   notifyManagement: boolean("notify_management").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
 });
+
+export const agentPrompts = pgTable("agent_prompts", {
+  id: serial("id").primaryKey(),
+  agentId: text("agent_id").notNull(),
+  prompt: text("prompt").notNull(),
+  version: integer("version").notNull(),
+  triggerType: text("trigger_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  unique().on(table.agentId, table.version),
+]);
+
+export const insertAgentPromptSchema = createInsertSchema(agentPrompts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AgentPrompt = typeof agentPrompts.$inferSelect;
+export type InsertAgentPrompt = z.infer<typeof insertAgentPromptSchema>;
 
 // ─── Drizzle relations ────────────────────────────────────────────────────────
 
