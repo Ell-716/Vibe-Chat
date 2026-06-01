@@ -197,12 +197,12 @@ function TurnBubble({
                 className="rounded-md p-1 transition-all"
                 style={{
                   background: isSelected ? CYAN : "transparent",
-                  border: `1px solid ${isSelected ? CYAN : CYAN + "40"}`,
+                  border: `1px solid ${isSelected ? CYAN : "transparent"}`,
                   opacity: isOtherSelected ? 0.4 : 1,
                   cursor: "pointer",
                 }}
               >
-                <Icon size={14} color={CYAN} />
+                <Icon size={14} color={isSelected ? "#ffffff" : CYAN} style={{ opacity: isSelected ? 1 : 0.5 }} />
               </button>
             );
           })}
