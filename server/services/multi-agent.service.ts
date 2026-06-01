@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { env } from "../config/env";
+import { getLatestPrompt } from "../agentPromptQueries";
 
 // ---------------------------------------------------------------------------
 // Agent definitions
@@ -140,6 +141,13 @@ export async function runAgentTurn(
     throw new Error(`Unknown agent id: ${currentAgentId}`);
   }
 
+  // Load the versioned system prompt from the database; fall back to the
+  // hardcoded constant if no DB row exists (e.g. before the seed has been run).
+  const dbPrompt = await getLatestPrompt(currentAgentId);
+  const basePrompt = dbPrompt
+    ? (console.log(`Using ${agent.name} prompt v${dbPrompt.version}`), dbPrompt.prompt)
+    : (console.log(`Using ${agent.name} fallback prompt`), agent.systemPrompt);
+
   const otherAgentId =
     currentAgentId === request.agent1Id ? request.agent2Id : request.agent1Id;
   const otherAgent = AGENTS[otherAgentId];
@@ -155,7 +163,7 @@ export async function runAgentTurn(
         `and help move toward a richer shared understanding. Keep responses focused and under 200 words.`;
 
   const systemPrompt =
-    `${agent.systemPrompt}\n\n${modeInstruction}\n\n` +
+    `${basePrompt}\n\n${modeInstruction}\n\n` +
     `IMPORTANT: Never begin your response with your name or role in brackets (e.g. do NOT write "[${agent.name}]:" or any "[Label]:" prefix). Respond directly without any such prefix.`;
 
   // Map AgentTurn history to alternating user/assistant messages so the model
