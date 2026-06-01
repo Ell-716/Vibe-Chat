@@ -26,7 +26,7 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 
 ### Level 2 — Advanced Features
 - **Multiple AI models** — Switch between Llama 3.3 70B (Groq, default), GPT-4o Mini (OpenAI), Claude Sonnet (Anthropic), Gemini Flash (Google), and DeepSeek V4 Flash (DeepSeek) from the header.
-- **Prompt & Agent Management** — Create, edit, and delete custom agents with their own system prompts, icons, and descriptions. Five built-in agents are included (General, Coder, Writer, Analyst, Tutor).
+- **Prompt & Agent Management** — Create, edit, and delete custom agents with their own system prompts, icons, and descriptions. Five built-in agents (General, Coder, Writer, Analyst, Tutor) are protected from edit/delete. Two example custom agents are pre-seeded (Debate Coach, Career Advisor); users can create unlimited additional agents.
 - **Support Workflow Automation** — Full support dashboard at `/support`: ticket creation, AI-powered categorisation, priority and sentiment analysis, smart agent routing, SLA deadlines, escalation rules, AI-suggested responses, and aggregate stats.
 - **Multi-channel support (Discord + Email)** — A Discord bot responds to DMs and @mentions. EmailJS sends customer notifications on ticket creation and agent replies.
 - **Voice Response to Text** — AI responses are read aloud automatically after each message (markdown stripped before synthesis).
@@ -36,6 +36,8 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **PDF Summarization** — After uploading, a "Summarize" chip appears above the chat input. Clicking it calls a dedicated `/api/documents/:id/summarize` endpoint that uses a map-reduce pattern: documents with more than 10 chunks are split into batches of 10, each batch summarized independently, then combined into a structured final summary (Overview, Key Points, Main Topics, Key Takeaways). A 2-second delay between LLM calls prevents hitting Groq's free-tier rate limit.
 
 - **Multi-Agent Conversation** — Pick any two AI agents from the sidebar at `/multi-agent`, enter a topic, and watch them debate or collaborate for 6 sequential turns. Five agents are available: General Assistant (balanced), Creative Writer (imaginative), Data Analyst (evidence-driven), Learning Tutor (patient & clear), and Code Expert (technical). Choose **Debate** mode for opposing arguments or **Collaborate** mode for constructive idea-building. After 6 turns, use **Continue**, **Redirect** (new topic, same agents), or **Stop** to control the conversation.
+
+- **Self-Improving Agents** — After each multi-agent conversation completes, agents can automatically improve their system prompts based on two feedback sources: per-turn 👍/👎 votes cast by the user and automatic LLM quality scoring (clarity, personality accuracy, relevance on a 1–5 scale). Clicking **Improve Agents** sends all feedback and scores to `POST /api/multi-agent/improve`, which generates improved prompt versions via Groq and persists them as versioned rows in the `agent_prompts` PostgreSQL table. Improved prompts are loaded automatically on the next conversation. This feature is scoped exclusively to the multi-agent page.
 
 ### Settings & Help
 - **Settings page** — Full settings UI at `/settings` with five tabs: Account, Preferences, Appearance, Data & Privacy, and Danger Zone.
@@ -134,10 +136,14 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 │   │   ├── support.controller.ts     # Tickets, agents, escalation rules, stats
 │   │   ├── agent.controller.ts       # Prompt agents CRUD
 │   │   ├── rag.controller.ts         # Document upload, listing, MCP tools
-│   │   ├── multiAgent.controller.ts  # GET /api/multi-agent/agents, POST /api/multi-agent/turn
-│   │   └── user.controller.ts        # Profile update, preferences, account deletion
+│   │   ├── multiAgent.controller.ts       # GET /api/multi-agent/agents, POST /api/multi-agent/turn
+│   │   ├── promptImprovement.controller.ts # POST feedback/improve, GET prompt-history
+│   │   └── user.controller.ts             # Profile update, preferences, account deletion
 │   ├── middleware/
 │   │   └── requireAuth.ts            # Checks req.isAuthenticated(); returns 401 if not
+│   ├── scripts/
+│   │   ├── seedAgentPrompts.ts       # Seeds v1 system prompts into agent_prompts table
+│   │   └── seedCustomAgents.ts       # Seeds Debate Coach + Career Advisor into agents table
 │   └── services/
 │       ├── auth.service.ts           # initiateGoogleAuth, handleCallback, logout, getCurrentUser
 │       ├── llm.service.ts            # All AI model calls (AsyncGenerator streaming)
@@ -145,6 +151,7 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 │       ├── support.service.ts        # Ticket analysis, routing, escalation checks
 │       ├── rag.service.ts            # PDF parsing, chunking, TF-IDF retrieval (userId-scoped)
 │       ├── multi-agent.service.ts    # AGENTS config, runAgentTurn(), AgentTurn/MultiAgentRequest types
+│       ├── prompt-improvement.service.ts  # autoScoreTurns, improvePrompt, shouldAutoImprove
 │       ├── mcp.service.ts            # Zapier MCP JSON-RPC client
 │       ├── discord.service.ts        # Discord.js bot
 │       ├── elevenlabs.service.ts     # TTS and STT
@@ -253,6 +260,7 @@ npm run db:push    # Push Drizzle schema changes to PostgreSQL
 - ✅ **RAG document chat** — Upload PDFs; server parses, chunks, and indexes them with TF-IDF for per-message context injection.
 - ✅ **PDF summarization** — Map-reduce summarization with structured output (Overview, Key Points, Main Topics, Key Takeaways).
 - ✅ **Multi-Agent Conversation** — Two AI agents debate or collaborate on any topic for 6 sequential turns, with Continue/Redirect/Stop controls.
+- ✅ **Self-Improving Agents** — Per-turn 👍/👎 voting and automatic LLM quality scoring drive versioned prompt improvements stored in PostgreSQL.
 - **Data export** — Allow users to download their conversation history and uploaded documents.
 - **Conversation sharing** — Share a read-only link to a conversation with others.
 - **Email / password auth option** — Alternative to Google OAuth for self-hosted deployments.
