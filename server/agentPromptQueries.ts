@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import { db } from "./db";
 import { agentPrompts } from "@shared/schema";
 import type { AgentPrompt, InsertAgentPrompt } from "@shared/schema";
@@ -26,4 +26,17 @@ export async function getLatestPrompt(agentId: string): Promise<AgentPrompt | un
 export async function insertPrompt(data: InsertAgentPrompt): Promise<AgentPrompt> {
   const rows = await db.insert(agentPrompts).values(data).returning();
   return rows[0];
+}
+
+/**
+ * Returns all prompt versions for the given agentId, ordered by version ascending.
+ * @param agentId - The agent identifier (e.g. "general_assistant").
+ * @returns Array of AgentPrompt rows from oldest to newest version.
+ */
+export async function getPromptHistory(agentId: string): Promise<AgentPrompt[]> {
+  return db
+    .select()
+    .from(agentPrompts)
+    .where(eq(agentPrompts.agentId, agentId))
+    .orderBy(asc(agentPrompts.version));
 }

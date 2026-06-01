@@ -7,6 +7,7 @@ import * as supportController from "./controllers/support.controller";
 import * as authController from "./controllers/auth.controller";
 import * as userController from "./controllers/user.controller";
 import * as multiAgentController from "./controllers/multiAgent.controller";
+import * as promptImprovementController from "./controllers/promptImprovement.controller";
 import { requireAuth } from "./middleware/requireAuth";
 
 /**
@@ -89,6 +90,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── Multi-agent conversation ──────────────────────────────────────────────
   app.post("/api/multi-agent/turn", multiAgentController.runTurn);
+
+  // ── Prompt improvement (self-improving agents) ────────────────────────────
+  app.post("/api/multi-agent/feedback", promptImprovementController.submitFeedback);
+  app.post("/api/multi-agent/improve", promptImprovementController.runImprovement);
+  app.get("/api/multi-agent/agents/:agentId/prompt-history", promptImprovementController.getAgentPromptHistory);
 
   // ── Support tickets ───────────────────────────────────────────────────────
   app.get("/api/support/tickets", supportController.getTickets);
