@@ -71,25 +71,61 @@ function TypingIndicator({ accentColor }: { accentColor: string }) {
 /**
  * A single conversation turn rendered as a chat bubble.
  * Agent 1 bubbles align left; Agent 2 bubbles align right.
+ * 👍/👎 buttons appear below the bubble on hover or when a vote is active.
  * @param turn - The AgentTurn data to display.
  * @param isAgent1 - True if this turn belongs to agent 1 (left-aligned).
  * @param agentConfig - Full config for the speaking agent.
+ * @param conversationId - Session UUID used to group feedback signals.
+ * @param currentVote - The vote the user has cast for this turn, if any.
+ * @param onVote - Callback fired when the user clicks a vote button.
  */
 function TurnBubble({
   turn,
   isAgent1,
   agentConfig,
+  conversationId,
+  currentVote,
+  onVote,
 }: {
   turn: AgentTurn;
   isAgent1: boolean;
   agentConfig: AgentConfig | undefined;
+  conversationId: string;
+  currentVote: "up" | "down" | undefined;
+  onVote: (turnNumber: number, vote: "up" | "down") => void;
 }) {
   const accent = agentConfig?.accentColor ?? CYAN;
   const avatar = agentConfig?.avatar ?? "";
+  const [hovered, setHovered] = useState(false);
+
+  const handleVoteClick = (vote: "up" | "down") => {
+    onVote(turn.turnNumber, vote);
+    // Only POST when adding or changing a vote, not when deselecting.
+    if (currentVote !== vote) {
+      fetch("/api/multi-agent/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          agentId: turn.agentId,
+          turnNumber: turn.turnNumber,
+          content: turn.content,
+          vote,
+        }),
+      }).catch(() => {
+        // Silent failure — voting should never crash the UI.
+      });
+    }
+  };
+
+  // Show buttons when the bubble is hovered or a vote is already cast.
+  const showButtons = hovered || currentVote !== undefined;
 
   return (
     <div
       className={`flex items-start gap-2 ${isAgent1 ? "flex-row" : "flex-row-reverse"}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Avatar */}
       <img
@@ -143,6 +179,34 @@ function TurnBubble({
         >
           {turn.content}
         </div>
+
+        {/* Vote buttons — visible on hover or when a vote is active */}
+        <div
+          className={`flex gap-1 ${isAgent1 ? "justify-start" : "justify-end"}`}
+          style={{ opacity: showButtons ? 1 : 0, transition: "opacity 0.15s" }}
+        >
+          {(["up", "down"] as const).map((v) => {
+            const isSelected = currentVote === v;
+            const isOtherSelected = currentVote !== undefined && !isSelected;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => handleVoteClick(v)}
+                aria-label={v === "up" ? "Thumbs up" : "Thumbs down"}
+                className="rounded-md px-1.5 py-0.5 text-sm leading-none transition-all"
+                style={{
+                  background: isSelected ? `${accent}30` : "transparent",
+                  border: `1px solid ${isSelected ? accent : accent + "40"}`,
+                  opacity: isOtherSelected ? 0.4 : 1,
+                  cursor: "pointer",
+                }}
+              >
+                {v === "up" ? "👍" : "👎"}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -165,6 +229,9 @@ function ConversationPanel({
   onRedirect,
   onStop,
   error,
+  conversationId,
+  votes,
+  onVote,
 }: {
   history: AgentTurn[];
   isRunning: boolean;
@@ -176,6 +243,9 @@ function ConversationPanel({
   onRedirect: () => void;
   onStop: () => void;
   error: string | null;
+  conversationId: string;
+  votes: Record<number, "up" | "down">;
+  onVote: (turnNumber: number, vote: "up" | "down") => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -225,6 +295,9 @@ function ConversationPanel({
               turn={turn}
               isAgent1={turn.agentId === agent1Id}
               agentConfig={agentMap[turn.agentId]}
+              conversationId={conversationId}
+              currentVote={votes[turn.turnNumber]}
+              onVote={onVote}
             />
           ))}
 
@@ -493,6 +566,8 @@ export default function MultiAgentPage() {
   const [turnCount, setTurnCount] = useState(0);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string>("");
+  const [votes, setVotes] = useState<Record<number, "up" | "down">>({});
 
   const topicInputRef = useRef<HTMLInputElement>(null);
 
@@ -570,11 +645,29 @@ export default function MultiAgentPage() {
     [agent1Id, agent2Id, mode, topic]
   );
 
+  /**
+   * Toggles a vote on a turn. Clicking the same vote again deselects it.
+   * @param turnNumber - The turn being voted on.
+   * @param vote - "up" or "down".
+   */
+  const handleVote = (turnNumber: number, vote: "up" | "down") => {
+    setVotes((prev) => {
+      if (prev[turnNumber] === vote) {
+        const next = { ...prev };
+        delete next[turnNumber];
+        return next;
+      }
+      return { ...prev, [turnNumber]: vote };
+    });
+  };
+
   /** Starts a fresh 6-turn conversation. */
   const handleStart = () => {
     setHistory([]);
     setTurnCount(0);
     setIsFinished(false);
+    setVotes({});
+    setConversationId(crypto.randomUUID());
     runTurns([]);
   };
 
@@ -715,6 +808,9 @@ export default function MultiAgentPage() {
           onRedirect={handleRedirect}
           onStop={handleStop}
           error={error}
+          conversationId={conversationId}
+          votes={votes}
+          onVote={handleVote}
         />
 
         <AgentSelectorPanel
