@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Check, Loader2, Bot } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Bot, ThumbsUp, ThumbsDown } from "lucide-react";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -22,6 +22,14 @@ type AgentTurn = {
   agentName: string;
   content: string;
   turnNumber: number;
+};
+
+type ImprovementResult = {
+  agentId: string;
+  previousVersion: number;
+  newVersion: number;
+  newPrompt: string;
+  triggerType: "user" | "auto";
 };
 
 // ── Static taglines ───────────────────────────────────────────────────────────
@@ -71,21 +79,51 @@ function TypingIndicator({ accentColor }: { accentColor: string }) {
 /**
  * A single conversation turn rendered as a chat bubble.
  * Agent 1 bubbles align left; Agent 2 bubbles align right.
+ * 👍/👎 buttons appear below the bubble on hover or when a vote is active.
  * @param turn - The AgentTurn data to display.
  * @param isAgent1 - True if this turn belongs to agent 1 (left-aligned).
  * @param agentConfig - Full config for the speaking agent.
+ * @param conversationId - Session UUID used to group feedback signals.
+ * @param currentVote - The vote the user has cast for this turn, if any.
+ * @param onVote - Callback fired when the user clicks a vote button.
  */
 function TurnBubble({
   turn,
   isAgent1,
   agentConfig,
+  conversationId,
+  currentVote,
+  onVote,
 }: {
   turn: AgentTurn;
   isAgent1: boolean;
   agentConfig: AgentConfig | undefined;
+  conversationId: string;
+  currentVote: "up" | "down" | undefined;
+  onVote: (turnNumber: number, vote: "up" | "down") => void;
 }) {
   const accent = agentConfig?.accentColor ?? CYAN;
   const avatar = agentConfig?.avatar ?? "";
+
+  const handleVoteClick = (vote: "up" | "down") => {
+    onVote(turn.turnNumber, vote);
+    // Only POST when adding or changing a vote, not when deselecting.
+    if (currentVote !== vote) {
+      fetch("/api/multi-agent/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          agentId: turn.agentId,
+          turnNumber: turn.turnNumber,
+          content: turn.content,
+          vote,
+        }),
+      }).catch(() => {
+        // Silent failure — voting should never crash the UI.
+      });
+    }
+  };
 
   return (
     <div
@@ -143,6 +181,32 @@ function TurnBubble({
         >
           {turn.content}
         </div>
+
+        {/* Vote buttons — always visible */}
+        <div className={`flex gap-1 ${isAgent1 ? "justify-start" : "justify-end"}`}>
+          {(["up", "down"] as const).map((v) => {
+            const isSelected = currentVote === v;
+            const isOtherSelected = currentVote !== undefined && !isSelected;
+            const Icon = v === "up" ? ThumbsUp : ThumbsDown;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => handleVoteClick(v)}
+                aria-label={v === "up" ? "Thumbs up" : "Thumbs down"}
+                className="rounded-md p-1 transition-all"
+                style={{
+                  background: isSelected ? CYAN : "transparent",
+                  border: `1px solid ${isSelected ? CYAN : "transparent"}`,
+                  opacity: isOtherSelected ? 0.4 : 1,
+                  cursor: "pointer",
+                }}
+              >
+                <Icon size={14} color={isSelected ? "#ffffff" : CYAN} style={{ opacity: isSelected ? 1 : 0.5 }} />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -165,6 +229,13 @@ function ConversationPanel({
   onRedirect,
   onStop,
   error,
+  conversationId,
+  votes,
+  onVote,
+  onImprove,
+  isImproving,
+  improvementResults,
+  improvementError,
 }: {
   history: AgentTurn[];
   isRunning: boolean;
@@ -176,6 +247,13 @@ function ConversationPanel({
   onRedirect: () => void;
   onStop: () => void;
   error: string | null;
+  conversationId: string;
+  votes: Record<number, "up" | "down">;
+  onVote: (turnNumber: number, vote: "up" | "down") => void;
+  onImprove: () => void;
+  isImproving: boolean;
+  improvementResults: ImprovementResult[] | null;
+  improvementError: string | null;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -225,6 +303,9 @@ function ConversationPanel({
               turn={turn}
               isAgent1={turn.agentId === agent1Id}
               agentConfig={agentMap[turn.agentId]}
+              conversationId={conversationId}
+              currentVote={votes[turn.turnNumber]}
+              onVote={onVote}
             />
           ))}
 
@@ -278,7 +359,9 @@ function ConversationPanel({
               >
                 Conversation complete
               </div>
-              <div className="flex gap-2">
+
+              {/* Action buttons row */}
+              <div className="flex flex-wrap justify-center gap-2">
                 {[
                   { label: "Continue", action: onContinue, accent: CYAN },
                   { label: "Redirect", action: onRedirect, accent: "#A855F7" },
@@ -300,7 +383,114 @@ function ConversationPanel({
                     {label}
                   </button>
                 ))}
+
+                {/* Improve Agents — hidden once results are available */}
+                {improvementResults === null && (
+                  <button
+                    type="button"
+                    disabled={isImproving}
+                    onClick={isImproving ? undefined : onImprove}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+                    style={{
+                      background: `${CYAN}18`,
+                      border: `1px solid ${CYAN}60`,
+                      color: CYAN,
+                      cursor: isImproving ? "not-allowed" : "pointer",
+                      opacity: isImproving ? 0.6 : 1,
+                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                    }}
+                  >
+                    {isImproving && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Improve Agents
+                  </button>
+                )}
               </div>
+
+              {/* Improvement error */}
+              {improvementError && (
+                <p
+                  className="text-xs"
+                  style={{ color: "#EF4444", fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                >
+                  {improvementError}
+                </p>
+              )}
+
+              {/* Improvement results */}
+              {improvementResults !== null && (
+                <div className="w-full flex flex-col gap-2">
+                  {improvementResults.length === 0 ? (
+                    /* Scores above threshold — no improvement needed */
+                    <div
+                      className="flex items-center justify-center gap-2 py-2 rounded-lg text-xs"
+                      style={{
+                        background: "hsl(var(--muted))",
+                        color: "hsl(var(--muted-foreground))",
+                        fontFamily: "'DM Sans', system-ui, sans-serif",
+                      }}
+                    >
+                      <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "#22C55E" }} />
+                      Agents are performing well — no improvements needed
+                    </div>
+                  ) : (
+                    <>
+                      {improvementResults.map((result) => {
+                        const agent = agentMap[result.agentId];
+                        const accent = agent?.accentColor ?? CYAN;
+                        return (
+                          <div
+                            key={result.agentId}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
+                            style={{
+                              background: `${accent}10`,
+                              border: `1px solid ${accent}30`,
+                            }}
+                          >
+                            {agent && (
+                              <img
+                                src={`/${agent.avatar}`}
+                                alt={agent.name}
+                                width={24}
+                                height={24}
+                                className="rounded-full shrink-0 object-cover"
+                                style={{ border: `1.5px solid ${accent}` }}
+                              />
+                            )}
+                            <span
+                              className="text-xs font-semibold"
+                              style={{ color: accent, fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                            >
+                              {agent?.name ?? result.agentId}
+                            </span>
+                            <span
+                              className="text-xs"
+                              style={{ color: "hsl(var(--muted-foreground))", fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                            >
+                              v{result.previousVersion} → v{result.newVersion}
+                            </span>
+                            <span
+                              className="ml-auto text-xs px-2 py-0.5 rounded-full"
+                              style={
+                                result.triggerType === "user"
+                                  ? { background: `${CYAN}20`, color: CYAN, border: `1px solid ${CYAN}50`, fontFamily: "'DM Sans', system-ui, sans-serif" }
+                                  : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", border: "1px solid hsl(var(--border))", fontFamily: "'DM Sans', system-ui, sans-serif" }
+                              }
+                            >
+                              {result.triggerType === "user" ? "user feedback" : "auto"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <p
+                        className="text-center text-xs"
+                        style={{ color: "hsl(var(--muted-foreground))", fontFamily: "'DM Sans', system-ui, sans-serif" }}
+                      >
+                        Improved prompts will be used in the next conversation
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -493,6 +683,11 @@ export default function MultiAgentPage() {
   const [turnCount, setTurnCount] = useState(0);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string>("");
+  const [votes, setVotes] = useState<Record<number, "up" | "down">>({});
+  const [isImproving, setIsImproving] = useState(false);
+  const [improvementResults, setImprovementResults] = useState<ImprovementResult[] | null>(null);
+  const [improvementError, setImprovementError] = useState<string | null>(null);
 
   const topicInputRef = useRef<HTMLInputElement>(null);
 
@@ -570,11 +765,60 @@ export default function MultiAgentPage() {
     [agent1Id, agent2Id, mode, topic]
   );
 
+  /**
+   * Toggles a vote on a turn. Clicking the same vote again deselects it.
+   * @param turnNumber - The turn being voted on.
+   * @param vote - "up" or "down".
+   */
+  const handleVote = (turnNumber: number, vote: "up" | "down") => {
+    setVotes((prev) => {
+      if (prev[turnNumber] === vote) {
+        const next = { ...prev };
+        delete next[turnNumber];
+        return next;
+      }
+      return { ...prev, [turnNumber]: vote };
+    });
+  };
+
+  /**
+   * Sends the completed conversation to the improvement endpoint.
+   * Auto-scores all turns and optionally generates improved prompts
+   * for agents that underperformed or received negative feedback.
+   */
+  const handleImprove = async () => {
+    setIsImproving(true);
+    setImprovementError(null);
+    try {
+      const res = await fetch("/api/multi-agent/improve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          turns: history,
+          model: "llama-3.3-70b-versatile",
+        }),
+      });
+      if (!res.ok) throw new Error("Request failed");
+      const data = await res.json() as { improved: boolean; results?: ImprovementResult[] };
+      // Empty array signals "improved: false" (scores above threshold).
+      setImprovementResults(data.improved ? (data.results ?? []) : []);
+    } catch {
+      setImprovementError("Improvement failed, please try again");
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
   /** Starts a fresh 6-turn conversation. */
   const handleStart = () => {
     setHistory([]);
     setTurnCount(0);
     setIsFinished(false);
+    setVotes({});
+    setImprovementResults(null);
+    setImprovementError(null);
+    setConversationId(crypto.randomUUID());
     runTurns([]);
   };
 
@@ -715,6 +959,13 @@ export default function MultiAgentPage() {
           onRedirect={handleRedirect}
           onStop={handleStop}
           error={error}
+          conversationId={conversationId}
+          votes={votes}
+          onVote={handleVote}
+          onImprove={handleImprove}
+          isImproving={isImproving}
+          improvementResults={improvementResults}
+          improvementError={improvementError}
         />
 
         <AgentSelectorPanel

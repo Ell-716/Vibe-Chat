@@ -116,6 +116,31 @@ const FAQ_GROUPS: Array<{
     ],
   },
   {
+    category: "Self-Improving Agents",
+    items: [
+      {
+        q: "What are Self-Improving Agents?",
+        a: "Self-Improving Agents is a feedback loop that lets Vibe Chat automatically refine the system prompts of your multi-agent AI participants over time. After each conversation you can rate individual turns, click \"Improve Agents\", and the system uses those signals plus automatic quality scoring to generate an upgraded prompt — stored as a new version in the database.",
+      },
+      {
+        q: "How do I vote on individual turns?",
+        a: "During or after a multi-agent conversation, every message bubble shows a thumbs-up and thumbs-down button directly below it. Click thumbs-up to mark a turn as helpful, or thumbs-down to flag it as weak. Clicking the same button a second time deselects your vote. You can vote on as many or as few turns as you like before triggering improvement.",
+      },
+      {
+        q: "How do I trigger prompt improvement?",
+        a: "Once the conversation finishes, an \"Improve Agents\" button appears in the completion banner. Click it to send your votes and the full conversation history to the server, which scores every turn with the LLM, combines that with your feedback, and generates improved prompts for both agents.",
+      },
+      {
+        q: "What do the improvement results mean?",
+        a: "Each result card shows the agent name, their previous prompt version (e.g. v1 → v2), and whether improvement was driven by user feedback, automatic quality scoring, or both. A \"No change needed\" result means the agent's performance already met the quality threshold and no new version was written.",
+      },
+      {
+        q: "When do improved prompts take effect?",
+        a: "Improved prompts are saved immediately to the database but only load at the start of the next conversation. Any multi-agent session already in progress will continue using the prompt version it started with.",
+      },
+    ],
+  },
+  {
     category: "Account",
     items: [
       {
