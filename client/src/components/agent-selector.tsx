@@ -1,4 +1,4 @@
-import { Bot, Code, PenTool, BarChart, GraduationCap, Settings, ChevronDown } from "lucide-react";
+import { Bot, Code, PenTool, BarChart, GraduationCap, Scale, Briefcase, Settings, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,6 +22,8 @@ const iconMap: Record<string, typeof Bot> = {
   "pen-tool": PenTool,
   "bar-chart": BarChart,
   "graduation-cap": GraduationCap,
+  scale: Scale,
+  briefcase: Briefcase,
 };
 
 /**

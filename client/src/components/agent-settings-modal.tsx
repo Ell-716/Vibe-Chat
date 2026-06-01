@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Bot, Code, PenTool, BarChart, GraduationCap, Plus, Trash2, Edit2, X, Check } from "lucide-react";
+import { Bot, Code, PenTool, BarChart, GraduationCap, Scale, Briefcase, Plus, Trash2, Edit2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,14 +21,8 @@ import {
 } from "@/components/ui/select";
 import type { Agent } from "@shared/schema";
 
-/** IDs of the five built-in multi-agent participants that cannot be modified. */
-const BUILT_IN_AGENT_IDS = [
-  "general_assistant",
-  "creative_writer",
-  "data_analyst",
-  "learning_tutor",
-  "code_expert",
-];
+/** IDs of the five built-in agents that cannot be edited or deleted. */
+const BUILT_IN_AGENT_IDS = ["general", "coder", "writer", "analyst", "tutor"];
 
 interface AgentSettingsModalProps {
   open: boolean;
@@ -44,6 +38,8 @@ const iconOptions = [
   { value: "pen-tool", label: "Writer", Icon: PenTool },
   { value: "bar-chart", label: "Chart", Icon: BarChart },
   { value: "graduation-cap", label: "Education", Icon: GraduationCap },
+  { value: "scale", label: "Scale", Icon: Scale },
+  { value: "briefcase", label: "Briefcase", Icon: Briefcase },
 ];
 
 const iconMap: Record<string, typeof Bot> = {
@@ -52,6 +48,8 @@ const iconMap: Record<string, typeof Bot> = {
   "pen-tool": PenTool,
   "bar-chart": BarChart,
   "graduation-cap": GraduationCap,
+  scale: Scale,
+  briefcase: Briefcase,
 };
 
 /**
@@ -260,13 +258,17 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
               {agents.map((agent) => {
                 const Icon = getIcon(agent.icon);
                 const isBuiltIn = BUILT_IN_AGENT_IDS.includes(agent.id);
+                // Protect both isDefault agents ("general", "coder", etc.) and
+                // any future agent whose id appears in BUILT_IN_AGENT_IDS.
+                const isProtected = agent.isDefault || isBuiltIn;
                 return (
                   <div
                     key={agent.id}
-                    className={`flex items-start gap-3 p-4 rounded-lg border ${
+                    onClick={() => onSelectAgent(agent)}
+                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer ${
                       selectedAgent?.id === agent.id
                         ? "border-primary bg-primary/10"
-                        : "border-border bg-card"
+                        : "border-border bg-card hover:border-primary/50"
                     }`}
                   >
                     <Icon className={`h-6 w-6 mt-0.5 ${selectedAgent?.id === agent.id ? "text-primary" : "text-muted-foreground"}`} />
@@ -283,17 +285,19 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{agent.description}</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      {isBuiltIn ? (
-                        // Built-in agents: both buttons visible but disabled, tooltip on wrapper
+                      {isProtected ? (
+                        // Protected agents: both buttons shown but fully disabled
                         <span
-                          title="Built-in agents cannot be modified"
+                          title="This agent cannot be modified"
                           className="flex items-center gap-1"
+                          style={{ cursor: "not-allowed" }}
                         >
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground opacity-30 cursor-not-allowed"
-                            disabled
+                            className="h-8 w-8 text-muted-foreground"
+                            style={{ opacity: 0.4, pointerEvents: "none" }}
+                            tabIndex={-1}
                             data-testid={`button-edit-agent-${agent.id}`}
                           >
                             <Edit2 className="h-4 w-4" />
@@ -301,15 +305,16 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground opacity-30 cursor-not-allowed"
-                            disabled
+                            className="h-8 w-8 text-muted-foreground"
+                            style={{ opacity: 0.4, pointerEvents: "none" }}
+                            tabIndex={-1}
                             data-testid={`button-delete-agent-${agent.id}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </span>
                       ) : (
-                        // Default and custom agents: existing behaviour
+                        // Custom agents: full edit + delete
                         <>
                           <Button
                             variant="ghost"
@@ -320,17 +325,15 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          {!agent.isDefault && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(agent)}
-                              data-testid={`button-delete-agent-${agent.id}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDelete(agent)}
+                            data-testid={`button-delete-agent-${agent.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </>
                       )}
                     </div>
