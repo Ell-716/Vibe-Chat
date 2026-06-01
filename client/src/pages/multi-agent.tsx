@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Check, Loader2, Bot, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Bot, ThumbsUp, ThumbsDown } from "lucide-react";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -104,7 +104,6 @@ function TurnBubble({
 }) {
   const accent = agentConfig?.accentColor ?? CYAN;
   const avatar = agentConfig?.avatar ?? "";
-  const [hovered, setHovered] = useState(false);
 
   const handleVoteClick = (vote: "up" | "down") => {
     onVote(turn.turnNumber, vote);
@@ -126,14 +125,9 @@ function TurnBubble({
     }
   };
 
-  // Show buttons when the bubble is hovered or a vote is already cast.
-  const showButtons = hovered || currentVote !== undefined;
-
   return (
     <div
       className={`flex items-start gap-2 ${isAgent1 ? "flex-row" : "flex-row-reverse"}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Avatar */}
       <img
@@ -188,29 +182,27 @@ function TurnBubble({
           {turn.content}
         </div>
 
-        {/* Vote buttons — visible on hover or when a vote is active */}
-        <div
-          className={`flex gap-1 ${isAgent1 ? "justify-start" : "justify-end"}`}
-          style={{ opacity: showButtons ? 1 : 0, transition: "opacity 0.15s" }}
-        >
+        {/* Vote buttons — always visible */}
+        <div className={`flex gap-1 ${isAgent1 ? "justify-start" : "justify-end"}`}>
           {(["up", "down"] as const).map((v) => {
             const isSelected = currentVote === v;
             const isOtherSelected = currentVote !== undefined && !isSelected;
+            const Icon = v === "up" ? ThumbsUp : ThumbsDown;
             return (
               <button
                 key={v}
                 type="button"
                 onClick={() => handleVoteClick(v)}
                 aria-label={v === "up" ? "Thumbs up" : "Thumbs down"}
-                className="rounded-md px-1.5 py-0.5 text-sm leading-none transition-all"
+                className="rounded-md p-1 transition-all"
                 style={{
-                  background: isSelected ? `${accent}30` : "transparent",
-                  border: `1px solid ${isSelected ? accent : accent + "40"}`,
+                  background: isSelected ? CYAN : "transparent",
+                  border: `1px solid ${isSelected ? CYAN : CYAN + "40"}`,
                   opacity: isOtherSelected ? 0.4 : 1,
                   cursor: "pointer",
                 }}
               >
-                {v === "up" ? "👍" : "👎"}
+                <Icon size={14} color={CYAN} />
               </button>
             );
           })}
@@ -408,11 +400,7 @@ function ConversationPanel({
                       fontFamily: "'DM Sans', system-ui, sans-serif",
                     }}
                   >
-                    {isImproving ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
-                    )}
+                    {isImproving && <Loader2 className="h-3 w-3 animate-spin" />}
                     Improve Agents
                   </button>
                 )}
