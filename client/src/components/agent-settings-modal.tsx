@@ -21,6 +21,15 @@ import {
 } from "@/components/ui/select";
 import type { Agent } from "@shared/schema";
 
+/** IDs of the five built-in multi-agent participants that cannot be modified. */
+const BUILT_IN_AGENT_IDS = [
+  "general_assistant",
+  "creative_writer",
+  "data_analyst",
+  "learning_tutor",
+  "code_expert",
+];
+
 interface AgentSettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -250,6 +259,7 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
             <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-2">
               {agents.map((agent) => {
                 const Icon = getIcon(agent.icon);
+                const isBuiltIn = BUILT_IN_AGENT_IDS.includes(agent.id);
                 return (
                   <div
                     key={agent.id}
@@ -266,29 +276,62 @@ export function AgentSettingsModal({ open, onOpenChange, agents, selectedAgent, 
                         {agent.isDefault && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Default</span>
                         )}
+                        {isBuiltIn && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Built-in</span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{agent.description}</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleEditAgent(agent)}
-                        data-testid={`button-edit-agent-${agent.id}`}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      {!agent.isDefault && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(agent)}
-                          data-testid={`button-delete-agent-${agent.id}`}
+                      {isBuiltIn ? (
+                        // Built-in agents: both buttons visible but disabled, tooltip on wrapper
+                        <span
+                          title="Built-in agents cannot be modified"
+                          className="flex items-center gap-1"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground opacity-30 cursor-not-allowed"
+                            disabled
+                            data-testid={`button-edit-agent-${agent.id}`}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground opacity-30 cursor-not-allowed"
+                            disabled
+                            data-testid={`button-delete-agent-${agent.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </span>
+                      ) : (
+                        // Default and custom agents: existing behaviour
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => handleEditAgent(agent)}
+                            data-testid={`button-edit-agent-${agent.id}`}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          {!agent.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDelete(agent)}
+                              data-testid={`button-delete-agent-${agent.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
