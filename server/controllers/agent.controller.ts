@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { storage } from "../storage";
 
 /**
@@ -61,14 +62,28 @@ export async function createAgent(req: Request, res: Response): Promise<void> {
   }
 }
 
+const updateAgentSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  systemPrompt: z.string().max(32000).optional(),
+  icon: z.string().max(50).optional(),
+});
+
 /**
  * PATCH /api/agents/:id
  * Partially updates an existing agent's fields.
- * @param req.body - Any subset of Agent fields to update.
+ * isDefault is explicitly stripped and cannot be overwritten via this route.
+ * @param req.body - Any subset of { name, description, systemPrompt, icon } to update.
  */
 export async function updateAgent(req: Request, res: Response): Promise<void> {
+  const parsed = updateAgentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    return;
+  }
+
   try {
-    const agent = await storage.updateAgent(req.params.id, req.body);
+    const agent = await storage.updateAgent(req.params.id, parsed.data);
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;
