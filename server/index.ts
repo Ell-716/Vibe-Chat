@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import passport from "./config/passport";
@@ -29,6 +30,19 @@ process.on("uncaughtException", (err) => {
 
 const app = express();
 const httpServer = createServer(app);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https:"],
+        "media-src": ["'self'", "blob:"],
+      },
+    },
+  })
+);
 
 const MemoryStoreSession = MemoryStore(session);
 
