@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import cors from "cors";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import passport from "./config/passport";
@@ -43,6 +44,11 @@ app.use(
     },
   })
 );
+
+app.use(cors({
+  origin: env.APP_URL ?? "http://localhost:5000",
+  credentials: true,
+}));
 
 const MemoryStoreSession = MemoryStore(session);
 
