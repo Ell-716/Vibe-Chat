@@ -3,11 +3,24 @@
  * All process.env reads happen here — the rest of the codebase imports from this module.
  * Optional integrations keep `undefined` values so callers can check presence before use.
  */
+
+if (process.env.NODE_ENV === "production") {
+  const required = ["SESSION_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "DATABASE_URL"];
+  for (const key of required) {
+    if (!process.env[key]) {
+      throw new Error(`Missing required env var: ${key}`);
+    }
+  }
+}
+
 export const env = {
   // ── Server ────────────────────────────────────────────────────────────────
   PORT: parseInt(process.env.PORT || "5000", 10),
   NODE_ENV: process.env.NODE_ENV || "development",
-  SESSION_SECRET: process.env.SESSION_SECRET as string | undefined,
+  SESSION_SECRET: process.env.SESSION_SECRET
+    ?? (process.env.NODE_ENV === "production"
+      ? (() => { throw new Error("SESSION_SECRET is required in production"); })()
+      : "dev-fallback-secret"),
 
   // ── Groq (default LLM provider) ───────────────────────────────────────────
   GROQ_API_KEY: process.env.GROQ_API_KEY as string | undefined,

@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import cors from "cors";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import passport from "./config/passport";
@@ -30,6 +32,24 @@ process.on("uncaughtException", (err) => {
 const app = express();
 const httpServer = createServer(app);
 
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https:"],
+        "media-src": ["'self'", "blob:"],
+      },
+    },
+  })
+);
+
+app.use(cors({
+  origin: env.APP_URL ?? "http://localhost:5000",
+  credentials: true,
+}));
+
 const MemoryStoreSession = MemoryStore(session);
 
 app.use(
@@ -40,6 +60,7 @@ app.use(
     cookie: {
       secure: env.NODE_ENV === "production",
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
     store: new MemoryStoreSession({
@@ -92,24 +113,11 @@ export function log(message: string, source = "express") {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  // Monkey-patch res.json so we can read the body before it is sent
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      log(logLine);
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -131,8 +139,8 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    console.error(err);
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after

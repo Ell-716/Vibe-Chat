@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { storage } from "../storage";
 import {
   routeTicket,
@@ -184,14 +185,26 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
   }
 }
 
+const updateTicketSchema = z.object({
+  status: z.enum(["open", "in_progress", "resolved", "closed"]).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  assignedAgentId: z.string().optional(),
+});
+
 /**
  * PATCH /api/support/tickets/:id
  * Partially updates a ticket's fields. Automatically sets resolvedAt when status → resolved.
- * @param req.body - Any subset of SupportTicket fields to update.
+ * @param req.body - Subset of { status, priority, assignedAgentId } to update.
  */
 export async function updateTicket(req: Request, res: Response): Promise<void> {
+  const parsed = updateTicketSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    return;
+  }
+
   try {
-    const updates = req.body;
+    const updates = parsed.data;
     const ticket = await storage.updateTicket(req.params.id, updates);
 
     if (!ticket) {
@@ -241,23 +254,31 @@ export async function getTicketMessages(req: Request, res: Response): Promise<vo
   }
 }
 
+const createTicketMessageSchema = z.object({
+  content: z.string().min(1),
+  senderId: z.string().min(1),
+  senderType: z.enum(["user", "agent", "system"]),
+  isInternal: z.boolean().optional(),
+});
+
 /**
  * POST /api/support/tickets/:id/messages
  * Adds a message to a ticket thread. Updates ticket status and sends email when
  * an agent posts a public (non-internal) reply for the first time.
  * @param req.body.content - Message text (required).
  * @param req.body.senderId - ID of the sender (required).
- * @param req.body.senderType - "customer" | "agent" | "system" (required).
+ * @param req.body.senderType - "user" | "agent" | "system" (required).
  * @param req.body.isInternal - Whether the message is an internal note. Defaults to false.
  */
 export async function createTicketMessage(req: Request, res: Response): Promise<void> {
-  try {
-    const { content, senderId, senderType, isInternal } = req.body;
+  const parsed = createTicketMessageSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    return;
+  }
 
-    if (!content || !senderId || !senderType) {
-      res.status(400).json({ error: "Content, senderId, and senderType are required" });
-      return;
-    }
+  try {
+    const { content, senderId, senderType, isInternal } = parsed.data;
 
     const ticket = await storage.getTicket(req.params.id);
     if (!ticket) {
@@ -538,13 +559,25 @@ export async function createSupportAgent(req: Request, res: Response): Promise<v
   }
 }
 
+const updateSupportAgentSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  isAvailable: z.boolean().optional(),
+});
+
 /**
  * PATCH /api/support/agents/:id
  * Partially updates a support agent's fields (e.g. availability, max tickets).
  */
 export async function updateSupportAgent(req: Request, res: Response): Promise<void> {
+  const parsed = updateSupportAgentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    return;
+  }
+
   try {
-    const agent = await storage.updateSupportAgent(req.params.id, req.body);
+    const agent = await storage.updateSupportAgent(req.params.id, parsed.data);
     if (!agent) {
       res.status(404).json({ error: "Agent not found" });
       return;

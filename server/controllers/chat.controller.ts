@@ -134,6 +134,10 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
       res.status(400).json({ error: "Content is required" });
       return;
     }
+    if (content.length > 16000) {
+      res.status(400).json({ error: "Message too long (max 16,000 characters)" });
+      return;
+    }
 
     // Pre-written assistant messages (e.g. document summaries) are saved directly
     // without triggering AI generation.
