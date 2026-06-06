@@ -72,9 +72,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/channels/status", chatController.getChannelStatus);
 
   // ── Voice (ElevenLabs) ────────────────────────────────────────────────────
-  app.post("/api/text-to-speech", chatController.textToSpeech);
+  const voiceLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10,             // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many voice requests, please wait a moment" },
+  });
+
+  app.post("/api/text-to-speech", voiceLimiter, chatController.textToSpeech);
   app.get("/api/voices", chatController.listVoices);
-  app.post("/api/speech-to-text", chatController.speechToTextHandler);
+  app.post("/api/speech-to-text", voiceLimiter, chatController.speechToTextHandler);
 
   // ── AI agents ─────────────────────────────────────────────────────────────
   app.get("/api/agents", agentController.getAgents);
