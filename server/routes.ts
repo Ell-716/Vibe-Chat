@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import rateLimit from "express-rate-limit";
 import * as chatController from "./controllers/chat.controller";
 import * as agentController from "./controllers/agent.controller";
 import * as ragController from "./controllers/rag.controller";
@@ -27,9 +28,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── Auth (public — no requireAuth) ────────────────────────────────────────
-  app.get("/auth/google", authController.initiateGoogleAuth);
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,                   // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many auth attempts, please try again later" },
+  });
+
+  app.get("/auth/google", authLimiter, authController.initiateGoogleAuth);
   app.get(
     "/auth/google/callback",
+    authLimiter,
     authController.googleCallback,
     authController.googleCallbackSuccess
   );
@@ -56,16 +66,32 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/conversations/:id", chatController.deleteConversation);
 
   // ── Chat / messaging ───────────────────────────────────────────────────────
-  app.post("/api/conversations/:id/messages", chatController.sendMessage);
+  const llmLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20,             // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many messages, please wait a moment" },
+  });
+
+  app.post("/api/conversations/:id/messages", llmLimiter, chatController.sendMessage);
 
   // ── Models & channels ──────────────────────────────────────────────────────
   app.get("/api/models", chatController.getModels);
   app.get("/api/channels/status", chatController.getChannelStatus);
 
   // ── Voice (ElevenLabs) ────────────────────────────────────────────────────
-  app.post("/api/text-to-speech", chatController.textToSpeech);
+  const voiceLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10,             // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many voice requests, please wait a moment" },
+  });
+
+  app.post("/api/text-to-speech", voiceLimiter, chatController.textToSpeech);
   app.get("/api/voices", chatController.listVoices);
-  app.post("/api/speech-to-text", chatController.speechToTextHandler);
+  app.post("/api/speech-to-text", voiceLimiter, chatController.speechToTextHandler);
 
   // ── AI agents ─────────────────────────────────────────────────────────────
   app.get("/api/agents", agentController.getAgents);
@@ -75,13 +101,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/agents/:id", agentController.deleteAgent);
 
   // ── RAG documents ─────────────────────────────────────────────────────────
+  const documentLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 5,              // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many document requests, please wait a moment" },
+  });
+
   app.post(
     "/api/documents/upload",
+    documentLimiter,
     ragController.uploadMiddleware.single("file"),
     ragController.uploadDocument
   );
   app.get("/api/documents", ragController.listDocuments);
-  app.post("/api/documents/:id/summarize", ragController.summarizeDocumentHandler);
+  app.post("/api/documents/:id/summarize", documentLimiter, ragController.summarizeDocumentHandler);
   app.delete("/api/documents/:id", ragController.removeDocument);
 
   // ── MCP (Zapier) ──────────────────────────────────────────────────────────
@@ -89,11 +124,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/mcp/execute", ragController.executeMcp);
 
   // ── Multi-agent conversation ──────────────────────────────────────────────
-  app.post("/api/multi-agent/turn", multiAgentController.runTurn);
+  const multiAgentLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 15,             // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many agent requests, please wait a moment" },
+  });
+
+  app.post("/api/multi-agent/turn", multiAgentLimiter, multiAgentController.runTurn);
 
   // ── Prompt improvement (self-improving agents) ────────────────────────────
   app.post("/api/multi-agent/feedback", promptImprovementController.submitFeedback);
-  app.post("/api/multi-agent/improve", promptImprovementController.runImprovement);
+  app.post("/api/multi-agent/improve", multiAgentLimiter, promptImprovementController.runImprovement);
   app.get("/api/multi-agent/agents/:agentId/prompt-history", promptImprovementController.getAgentPromptHistory);
 
   // ── Support tickets ───────────────────────────────────────────────────────

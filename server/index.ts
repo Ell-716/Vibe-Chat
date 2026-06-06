@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import passport from "./config/passport";
@@ -49,6 +50,16 @@ app.use(cors({
   origin: env.APP_URL ?? "http://localhost:5000",
   credentials: true,
 }));
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,                  // per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
+
+app.use(globalLimiter);
 
 const MemoryStoreSession = MemoryStore(session);
 
