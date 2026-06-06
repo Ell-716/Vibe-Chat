@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import rateLimit from "express-rate-limit";
 import * as chatController from "./controllers/chat.controller";
 import * as agentController from "./controllers/agent.controller";
 import * as ragController from "./controllers/rag.controller";
@@ -56,7 +57,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/conversations/:id", chatController.deleteConversation);
 
   // ── Chat / messaging ───────────────────────────────────────────────────────
-  app.post("/api/conversations/:id/messages", chatController.sendMessage);
+  const llmLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20,             // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many messages, please wait a moment" },
+  });
+
+  app.post("/api/conversations/:id/messages", llmLimiter, chatController.sendMessage);
 
   // ── Models & channels ──────────────────────────────────────────────────────
   app.get("/api/models", chatController.getModels);
