@@ -84,13 +84,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.delete("/api/agents/:id", agentController.deleteAgent);
 
   // ── RAG documents ─────────────────────────────────────────────────────────
+  const documentLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 5,              // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many document requests, please wait a moment" },
+  });
+
   app.post(
     "/api/documents/upload",
+    documentLimiter,
     ragController.uploadMiddleware.single("file"),
     ragController.uploadDocument
   );
   app.get("/api/documents", ragController.listDocuments);
-  app.post("/api/documents/:id/summarize", ragController.summarizeDocumentHandler);
+  app.post("/api/documents/:id/summarize", documentLimiter, ragController.summarizeDocumentHandler);
   app.delete("/api/documents/:id", ragController.removeDocument);
 
   // ── MCP (Zapier) ──────────────────────────────────────────────────────────
