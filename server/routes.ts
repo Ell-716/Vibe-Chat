@@ -107,11 +107,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/mcp/execute", ragController.executeMcp);
 
   // ── Multi-agent conversation ──────────────────────────────────────────────
-  app.post("/api/multi-agent/turn", multiAgentController.runTurn);
+  const multiAgentLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 15,             // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many agent requests, please wait a moment" },
+  });
+
+  app.post("/api/multi-agent/turn", multiAgentLimiter, multiAgentController.runTurn);
 
   // ── Prompt improvement (self-improving agents) ────────────────────────────
   app.post("/api/multi-agent/feedback", promptImprovementController.submitFeedback);
-  app.post("/api/multi-agent/improve", promptImprovementController.runImprovement);
+  app.post("/api/multi-agent/improve", multiAgentLimiter, promptImprovementController.runImprovement);
   app.get("/api/multi-agent/agents/:agentId/prompt-history", promptImprovementController.getAgentPromptHistory);
 
   // ── Support tickets ───────────────────────────────────────────────────────
