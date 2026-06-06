@@ -28,9 +28,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── Auth (public — no requireAuth) ────────────────────────────────────────
-  app.get("/auth/google", authController.initiateGoogleAuth);
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,                   // per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many auth attempts, please try again later" },
+  });
+
+  app.get("/auth/google", authLimiter, authController.initiateGoogleAuth);
   app.get(
     "/auth/google/callback",
+    authLimiter,
     authController.googleCallback,
     authController.googleCallbackSuccess
   );
