@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb, uuid, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean, real, jsonb, uuid, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -35,7 +35,9 @@ export const conversations = pgTable("conversations", {
   title: text("title").notNull(),
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => [
+  index("conversations_user_id_idx").on(table.userId),
+]);
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -43,7 +45,9 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => [
+  index("messages_conversation_id_idx").on(table.conversationId),
+]);
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
@@ -323,7 +327,10 @@ export const supportTickets = pgTable("support_tickets", {
   tags: jsonb("tags").notNull().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => [
+  index("support_tickets_status_idx").on(table.status),
+  index("support_tickets_assigned_agent_id_idx").on(table.assignedAgentId),
+]);
 
 export const ticketMessages = pgTable("ticket_messages", {
   id: varchar("id").primaryKey(),
@@ -333,7 +340,9 @@ export const ticketMessages = pgTable("ticket_messages", {
   content: text("content").notNull(),
   isInternal: boolean("is_internal").notNull().default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => [
+  index("ticket_messages_ticket_id_idx").on(table.ticketId),
+]);
 
 export const supportAgents = pgTable("support_agents", {
   id: varchar("id").primaryKey(),
