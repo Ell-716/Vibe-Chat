@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import rateLimit from "express-rate-limit";
+import { sql } from "drizzle-orm";
+import { db } from "./db";
+import { env } from "./config/env";
 import * as chatController from "./controllers/chat.controller";
 import * as agentController from "./controllers/agent.controller";
 import * as ragController from "./controllers/rag.controller";
@@ -23,8 +26,17 @@ import { requireAuth } from "./middleware/requireAuth";
  */
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // ── Health check (public) ─────────────────────────────────────────────────
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date() });
+  app.get("/health", async (_req, res) => {
+    if (!env.DATABASE_URL) {
+      res.json({ status: "ok", db: "not configured", uptime: process.uptime() });
+      return;
+    }
+    try {
+      await db.execute(sql`SELECT 1`);
+      res.json({ status: "ok", db: "connected", uptime: process.uptime() });
+    } catch {
+      res.status(503).json({ status: "error", db: "unreachable", uptime: process.uptime() });
+    }
   });
 
   // ── Auth (public — no requireAuth) ────────────────────────────────────────
