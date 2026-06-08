@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import OpenAI from "openai";
 import { storage } from "../storage";
 import { env } from "../config/env";
@@ -85,7 +86,7 @@ Respond in JSON format with these exact fields:
 
     return JSON.parse(content) as TicketAnalysis;
   } catch (error) {
-    console.error("Error analyzing ticket:", error);
+    logger.error({ err: error }, "Error analyzing ticket");
     return {
       category: "general",
       priority: "medium",
@@ -154,7 +155,7 @@ Guidelines:
       "I apologize, but I need more information to assist you better."
     );
   } catch (error) {
-    console.error("Error generating support response:", error);
+    logger.error({ err: error }, "Error generating support response");
     throw error;
   }
 }

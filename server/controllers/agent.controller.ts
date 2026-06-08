@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { logger } from "../lib/logger";
 import { storage } from "../storage";
 
 /**
@@ -11,7 +12,7 @@ export async function getAgents(req: Request, res: Response): Promise<void> {
     const agents = await storage.getAllAgents();
     res.json(agents);
   } catch (error) {
-    console.error("Error fetching agents:", error);
+    logger.error({ err: error }, "Error fetching agents");
     res.status(500).json({ error: "Failed to fetch agents" });
   }
 }
@@ -29,7 +30,7 @@ export async function getAgent(req: Request, res: Response): Promise<void> {
     }
     res.json(agent);
   } catch (error) {
-    console.error("Error fetching agent:", error);
+    logger.error({ err: error }, "Error fetching agent");
     res.status(500).json({ error: "Failed to fetch agent" });
   }
 }
@@ -57,7 +58,7 @@ export async function createAgent(req: Request, res: Response): Promise<void> {
     });
     res.status(201).json(agent);
   } catch (error) {
-    console.error("Error creating agent:", error);
+    logger.error({ err: error }, "Error creating agent");
     res.status(500).json({ error: "Failed to create agent" });
   }
 }
@@ -90,7 +91,7 @@ export async function updateAgent(req: Request, res: Response): Promise<void> {
     }
     res.json(agent);
   } catch (error) {
-    console.error("Error updating agent:", error);
+    logger.error({ err: error }, "Error updating agent");
     res.status(500).json({ error: "Failed to update agent" });
   }
 }
@@ -104,7 +105,7 @@ export async function deleteAgent(req: Request, res: Response): Promise<void> {
     await storage.deleteAgent(req.params.id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting agent:", error);
+    logger.error({ err: error }, "Error deleting agent");
     res.status(500).json({ error: "Failed to delete agent" });
   }
 }

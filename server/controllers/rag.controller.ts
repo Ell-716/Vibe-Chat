@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import multer from "multer";
+import { logger } from "../lib/logger";
 import {
   processDocument,
   getDocuments,
@@ -43,7 +44,7 @@ export async function uploadDocument(req: Request, res: Response): Promise<void>
     const doc = await processDocument(req.file.buffer, req.file.originalname, req.user!.id);
     res.json(doc);
   } catch (error) {
-    console.error("Document upload error:", error);
+    logger.error({ err: error }, "Document upload error");
     res.status(500).json({ error: "Failed to process document" });
   }
 }
@@ -99,7 +100,7 @@ export async function summarizeDocumentHandler(req: Request, res: Response): Pro
       });
       return;
     }
-    console.error("Document summarization error:", error);
+    logger.error({ err: error }, "Document summarization error");
     res.status(500).json({ error: message });
   }
 }
@@ -114,7 +115,7 @@ export async function getMcpTools(_req: Request, res: Response): Promise<void> {
     const tools = await listMCPTools();
     res.json({ tools, configured: !!env.ZAPIER_MCP_URL });
   } catch (error) {
-    console.error("Error fetching MCP tools:", error);
+    logger.error({ err: error }, "Error fetching MCP tools");
     res.json({ tools: [], configured: false, error: String(error) });
   }
 }
@@ -135,7 +136,7 @@ export async function executeMcp(req: Request, res: Response): Promise<void> {
     const result = await executeMCPTool(toolName, args || {});
     res.json(result);
   } catch (error) {
-    console.error("Error executing MCP tool:", error);
+    logger.error({ err: error }, "Error executing MCP tool");
     res.status(500).json({ error: "Failed to execute MCP tool" });
   }
 }

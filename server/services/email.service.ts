@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import { env } from "../config/env";
 
 const EMAILJS_API_URL = "https://api.emailjs.com/api/v1.0/email/send";
@@ -20,7 +21,7 @@ async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
   const { EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY } = env;
 
   if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
-    console.log("EmailJS not configured - skipping email notification");
+    logger.info("EmailJS not configured - skipping email notification");
     return false;
   }
 
@@ -45,15 +46,15 @@ async function sendEmailJS(params: EmailJSParams): Promise<boolean> {
     }).finally(() => clearTimeout(timeoutId));
 
     if (response.ok) {
-      console.log(`Email sent successfully via EmailJS to ${params.to_email}`);
+      logger.info(`Email sent successfully via EmailJS to ${params.to_email}`);
       return true;
     }
 
     const errorText = await response.text();
-    console.error("EmailJS error:", errorText);
+    logger.error({ err: errorText }, "EmailJS error");
     return false;
   } catch (error) {
-    console.error("Failed to send email via EmailJS:", error);
+    logger.error({ err: error }, "Failed to send email via EmailJS");
     return false;
   }
 }

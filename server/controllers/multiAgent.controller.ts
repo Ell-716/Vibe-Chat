@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { logger } from "../lib/logger";
 import {
   AGENTS,
   runAgentTurn,
@@ -97,7 +98,7 @@ export async function runTurn(req: Request, res: Response): Promise<void> {
 
     res.json(turn);
   } catch (error) {
-    console.error("Error running multi-agent turn:", error);
+    logger.error({ err: error }, "Error running multi-agent turn");
     res.status(500).json({ error: "Failed to run agent turn" });
   }
 }

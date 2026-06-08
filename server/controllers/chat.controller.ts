@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { logger } from "../lib/logger";
 import { storage } from "../storage";
 import { chat, buildSystemPrompt, type AIModel } from "../services/llm.service";
 import { hasDocuments, retrieveContext } from "../services/rag.service";
@@ -23,7 +24,7 @@ export async function getConversations(req: Request, res: Response): Promise<voi
     const conversations = await storage.getAllConversations(req.user!.id);
     res.json(conversations);
   } catch (error) {
-    console.error("Error fetching conversations:", error);
+    logger.error({ err: error }, "Error fetching conversations");
     res.status(500).json({ error: "Failed to fetch conversations" });
   }
 }
@@ -47,7 +48,7 @@ export async function getConversation(req: Request, res: Response): Promise<void
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    console.error("Error fetching conversation:", error);
+    logger.error({ err: error }, "Error fetching conversation");
     res.status(500).json({ error: "Failed to fetch conversation" });
   }
 }
@@ -63,7 +64,7 @@ export async function createConversation(req: Request, res: Response): Promise<v
     const conversation = await storage.createConversation(title || "New Chat", req.user!.id);
     res.status(201).json(conversation);
   } catch (error) {
-    console.error("Error creating conversation:", error);
+    logger.error({ err: error }, "Error creating conversation");
     res.status(500).json({ error: "Failed to create conversation" });
   }
 }
@@ -88,7 +89,7 @@ export async function updateConversation(req: Request, res: Response): Promise<v
     }
     res.json(conversation);
   } catch (error) {
-    console.error("Error updating conversation:", error);
+    logger.error({ err: error }, "Error updating conversation");
     res.status(500).json({ error: "Failed to update conversation" });
   }
 }
@@ -103,7 +104,7 @@ export async function deleteConversation(req: Request, res: Response): Promise<v
     await storage.deleteConversation(id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting conversation:", error);
+    logger.error({ err: error }, "Error deleting conversation");
     res.status(500).json({ error: "Failed to delete conversation" });
   }
 }
@@ -188,7 +189,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (error: any) {
-    console.error("Error sending message:", error);
+    logger.error({ err: error }, "Error sending message");
     const userMessage = error?.message || "Failed to send message";
     if (res.headersSent) {
       res.write(`data: ${JSON.stringify({ error: userMessage })}\n\n`);
@@ -269,7 +270,7 @@ export async function textToSpeech(req: Request, res: Response): Promise<void> {
     }
     res.end();
   } catch (error) {
-    console.error("Error generating speech:", error);
+    logger.error({ err: error }, "Error generating speech");
     res.status(500).json({ error: "Failed to generate speech" });
   }
 }
@@ -287,7 +288,7 @@ export async function listVoices(_req: Request, res: Response): Promise<void> {
     const voices = await getVoices();
     res.json(voices);
   } catch (error) {
-    console.error("Error fetching voices:", error);
+    logger.error({ err: error }, "Error fetching voices");
     res.status(500).json({ error: "Failed to fetch voices" });
   }
 }
@@ -319,12 +320,12 @@ export async function speechToTextHandler(req: Request, res: Response): Promise<
         const text = await speechToText(audioBuffer);
         res.json({ text });
       } catch (error) {
-        console.error("Error transcribing audio:", error);
+        logger.error({ err: error }, "Error transcribing audio");
         res.status(500).json({ error: "Failed to transcribe audio" });
       }
     });
   } catch (error) {
-    console.error("Error in speech-to-text:", error);
+    logger.error({ err: error }, "Error in speech-to-text");
     res.status(500).json({ error: "Failed to process audio" });
   }
 }

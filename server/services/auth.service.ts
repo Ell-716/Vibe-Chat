@@ -1,6 +1,7 @@
 import passport from "passport";
 import type { Request, Response, NextFunction } from "express";
 import type { User } from "@shared/schema";
+import { logger } from "../lib/logger";
 
 /**
  * Returns Express middleware that initiates the Google OAuth flow.
@@ -28,7 +29,7 @@ export function handleGoogleCallback() {
  */
 export function logout(req: Request, res: Response): void {
   req.logout((err) => {
-    if (err) console.error("[auth] Logout error:", err);
+    if (err) logger.error({ err: err }, "[auth] Logout error");
     req.session.destroy(() => {
       res.redirect("/login");
     });

@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { logger } from "../lib/logger";
 import type { User } from "@shared/schema";
 import * as userService from "../services/user.service";
 
@@ -88,7 +89,7 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
     await userService.deleteUserAccount(userId);
 
     req.logout((logoutErr) => {
-      if (logoutErr) console.error("[user] Logout error during account deletion:", logoutErr);
+      if (logoutErr) logger.error({ err: logoutErr }, "[user] Logout error during account deletion");
       req.session.destroy(() => {
         res.json({ success: true });
       });
