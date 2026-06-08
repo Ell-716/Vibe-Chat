@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import type { MCPTool } from "@shared/schema";
 import type { ChatCompletionTool } from "openai/resources/chat/completions";
 import { env } from "../config/env";
@@ -42,7 +43,7 @@ async function callMCP(method: string, params: Record<string, any> = {}): Promis
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("MCP Error Response:", error);
+    logger.error({ err: error }, "MCP Error Response");
     throw new Error(`MCP error: ${response.status} ${error}`);
   }
 
@@ -104,7 +105,7 @@ export async function listMCPTools(): Promise<any[]> {
     const result = await callMCP("tools/list");
     return result?.tools || [];
   } catch (error) {
-    console.error("Error listing MCP tools:", error);
+    logger.error({ err: error }, "Error listing MCP tools");
     return [];
   }
 }
@@ -119,7 +120,7 @@ export async function executeMCPTool(toolName: string, args: Record<string, any>
   try {
     return await callMCP("tools/call", { name: toolName, arguments: args });
   } catch (error) {
-    console.error("Error executing MCP tool:", error);
+    logger.error({ err: error }, "Error executing MCP tool");
     throw error;
   }
 }
@@ -271,7 +272,7 @@ export async function handleToolCall(
   functionName: string,
   args: Record<string, any>
 ): Promise<string> {
-  console.log(`Handling tool call: ${functionName}`);
+  logger.info(`Handling tool call: ${functionName}`);
 
   try {
     let mcpToolName: string;
@@ -332,7 +333,7 @@ export async function handleToolCall(
     const result = await executeMCPTool(mcpToolName, mcpArgs);
     return JSON.stringify(result, null, 2);
   } catch (error) {
-    console.error(`Tool call error for ${functionName}:`, error);
+    logger.error({ err: error }, `Tool call error for ${functionName}`);
     return JSON.stringify({
       error: error instanceof Error ? error.message : "Tool execution failed",
     });

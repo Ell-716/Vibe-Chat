@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { logger } from "../lib/logger";
 import { storage } from "../storage";
 import {
   routeTicket,
@@ -78,7 +79,7 @@ export async function getTickets(req: Request, res: Response): Promise<void> {
 
     res.json(tickets);
   } catch (error) {
-    console.error("Error fetching tickets:", error);
+    logger.error({ err: error }, "Error fetching tickets");
     res.status(500).json({ error: "Failed to fetch tickets" });
   }
 }
@@ -99,7 +100,7 @@ export async function getTicket(req: Request, res: Response): Promise<void> {
     }
     res.json({ ...ticket, messages });
   } catch (error) {
-    console.error("Error fetching ticket:", error);
+    logger.error({ err: error }, "Error fetching ticket");
     res.status(500).json({ error: "Failed to fetch ticket" });
   }
 }
@@ -154,7 +155,7 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
       analysis = routingResult.analysis;
     } catch (aiError) {
       // AI routing is best-effort — fall back to safe defaults so the ticket is still created
-      console.error("AI routing failed, using defaults:", aiError);
+      logger.error({ err: aiError }, "AI routing failed, using defaults");
       analysis = {
         category: ticket.category,
         priority: ticket.priority,
@@ -171,7 +172,7 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
 
     // Email is fire-and-forget — failure does not affect the API response
     sendTicketCreatedEmail(customerEmail, customerName, ticket.id, subject, description).catch(
-      (err) => console.error("Email notification failed:", err)
+      (err) => logger.error({ err: err }, "Email notification failed")
     );
 
     res.status(201).json({
@@ -180,7 +181,7 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
       assignedAgent: assignedAgent ? { id: assignedAgent.id, name: assignedAgent.name } : null,
     });
   } catch (error) {
-    console.error("Error creating ticket:", error);
+    logger.error({ err: error }, "Error creating ticket");
     res.status(500).json({ error: "Failed to create ticket" });
   }
 }
@@ -219,7 +220,7 @@ export async function updateTicket(req: Request, res: Response): Promise<void> {
 
     res.json(ticket);
   } catch (error) {
-    console.error("Error updating ticket:", error);
+    logger.error({ err: error }, "Error updating ticket");
     res.status(500).json({ error: "Failed to update ticket" });
   }
 }
@@ -233,7 +234,7 @@ export async function deleteTicket(req: Request, res: Response): Promise<void> {
     await storage.deleteTicket(req.params.id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting ticket:", error);
+    logger.error({ err: error }, "Error deleting ticket");
     res.status(500).json({ error: "Failed to delete ticket" });
   }
 }
@@ -249,7 +250,7 @@ export async function getTicketMessages(req: Request, res: Response): Promise<vo
     const messages = await storage.getTicketMessages(req.params.id);
     res.json(messages);
   } catch (error) {
-    console.error("Error fetching messages:", error);
+    logger.error({ err: error }, "Error fetching messages");
     res.status(500).json({ error: "Failed to fetch messages" });
   }
 }
@@ -257,7 +258,7 @@ export async function getTicketMessages(req: Request, res: Response): Promise<vo
 const createTicketMessageSchema = z.object({
   content: z.string().min(1),
   senderId: z.string().min(1),
-  senderType: z.enum(["user", "agent", "system"]),
+  senderType: z.enum(["customer", "agent", "system"]),
   isInternal: z.boolean().optional(),
 });
 
@@ -317,12 +318,12 @@ export async function createTicketMessage(req: Request, res: Response): Promise<
         ticket.subject,
         agentName,
         content
-      ).catch((err) => console.error("Agent response email failed:", err));
+      ).catch((err) => logger.error({ err: err }, "Agent response email failed"));
     }
 
     res.status(201).json(message);
   } catch (error) {
-    console.error("Error creating message:", error);
+    logger.error({ err: error }, "Error creating message");
     res.status(500).json({ error: "Failed to create message" });
   }
 }
@@ -363,13 +364,13 @@ export async function generateResponse(req: Request, res: Response): Promise<voi
         agentName
       );
     } catch (aiError) {
-      console.error("AI response generation failed:", aiError);
+      logger.error({ err: aiError }, "AI response generation failed");
       suggestedResponse = `Dear ${ticket.customerName},\n\nThank you for reaching out to our support team. We have received your inquiry regarding "${ticket.subject}" and are looking into it.\n\nWe will get back to you as soon as possible.\n\nBest regards,\n${agentName}`;
     }
 
     res.json({ suggestedResponse });
   } catch (error) {
-    console.error("Error generating response:", error);
+    logger.error({ err: error }, "Error generating response");
     res.status(500).json({ error: "Failed to generate response" });
   }
 }
@@ -398,7 +399,7 @@ export async function analyzeTicketHandler(req: Request, res: Response): Promise
 
     res.json(analysis);
   } catch (error) {
-    console.error("Error analyzing ticket:", error);
+    logger.error({ err: error }, "Error analyzing ticket");
     res.status(500).json({ error: "Failed to analyze ticket" });
   }
 }
@@ -455,7 +456,7 @@ export async function assignTicket(req: Request, res: Response): Promise<void> {
 
     res.json(updatedTicket);
   } catch (error) {
-    console.error("Error assigning ticket:", error);
+    logger.error({ err: error }, "Error assigning ticket");
     res.status(500).json({ error: "Failed to assign ticket" });
   }
 }
@@ -492,7 +493,7 @@ export async function escalateTicket(req: Request, res: Response): Promise<void>
 
     res.json(updatedTicket);
   } catch (error) {
-    console.error("Error escalating ticket:", error);
+    logger.error({ err: error }, "Error escalating ticket");
     res.status(500).json({ error: "Failed to escalate ticket" });
   }
 }
@@ -508,7 +509,7 @@ export async function getSupportAgents(_req: Request, res: Response): Promise<vo
     const agents = await storage.getAllSupportAgents();
     res.json(agents);
   } catch (error) {
-    console.error("Error fetching agents:", error);
+    logger.error({ err: error }, "Error fetching agents");
     res.status(500).json({ error: "Failed to fetch agents" });
   }
 }
@@ -529,7 +530,7 @@ export async function getSupportAgent(req: Request, res: Response): Promise<void
     }
     res.json({ ...agent, assignedTickets: tickets });
   } catch (error) {
-    console.error("Error fetching agent:", error);
+    logger.error({ err: error }, "Error fetching agent");
     res.status(500).json({ error: "Failed to fetch agent" });
   }
 }
@@ -554,7 +555,7 @@ export async function createSupportAgent(req: Request, res: Response): Promise<v
     const agent = await storage.createSupportAgent({ name, email, skills, maxTickets });
     res.status(201).json(agent);
   } catch (error) {
-    console.error("Error creating agent:", error);
+    logger.error({ err: error }, "Error creating agent");
     res.status(500).json({ error: "Failed to create agent" });
   }
 }
@@ -584,7 +585,7 @@ export async function updateSupportAgent(req: Request, res: Response): Promise<v
     }
     res.json(agent);
   } catch (error) {
-    console.error("Error updating agent:", error);
+    logger.error({ err: error }, "Error updating agent");
     res.status(500).json({ error: "Failed to update agent" });
   }
 }
@@ -598,7 +599,7 @@ export async function deleteSupportAgent(req: Request, res: Response): Promise<v
     await storage.deleteSupportAgent(req.params.id);
     res.status(204).send();
   } catch (error) {
-    console.error("Error deleting agent:", error);
+    logger.error({ err: error }, "Error deleting agent");
     res.status(500).json({ error: "Failed to delete agent" });
   }
 }
@@ -614,7 +615,7 @@ export async function getEscalationRules(_req: Request, res: Response): Promise<
     const rules = await storage.getAllEscalationRules();
     res.json(rules);
   } catch (error) {
-    console.error("Error fetching escalation rules:", error);
+    logger.error({ err: error }, "Error fetching escalation rules");
     res.status(500).json({ error: "Failed to fetch escalation rules" });
   }
 }
@@ -629,7 +630,7 @@ export async function runEscalationCheck(_req: Request, res: Response): Promise<
     const escalatedTickets = await checkEscalations();
     res.json({ escalatedCount: escalatedTickets.length, tickets: escalatedTickets });
   } catch (error) {
-    console.error("Error checking escalations:", error);
+    logger.error({ err: error }, "Error checking escalations");
     res.status(500).json({ error: "Failed to check escalations" });
   }
 }
@@ -673,7 +674,7 @@ export async function getStats(_req: Request, res: Response): Promise<void> {
 
     res.json(stats);
   } catch (error) {
-    console.error("Error fetching stats:", error);
+    logger.error({ err: error }, "Error fetching stats");
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 }

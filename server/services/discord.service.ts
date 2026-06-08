@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import { Client, GatewayIntentBits, type Message, Events } from "discord.js";
 import OpenAI from "openai";
 import { env } from "../config/env";
@@ -24,7 +25,7 @@ const client = new Client({
 // Register error handler immediately so WebSocket timeout/handshake errors
 // don't become unhandled 'error' events that crash the process.
 client.on(Events.Error, (error) => {
-  console.error("Discord client error:", error.message);
+  logger.error({ err: error.message }, "Discord client error");
 });
 
 /** Per-user conversation history kept in memory for the duration of the process. */
@@ -82,7 +83,7 @@ async function generateAIResponse(userId: string, userMessage: string): Promise<
 
     return assistantMessage;
   } catch (error) {
-    console.error("Discord AI error:", error);
+    logger.error({ err: error }, "Discord AI error");
     return "Sorry, I encountered an error processing your message. Please try again.";
   }
 }
@@ -145,7 +146,7 @@ async function handleMessage(message: Message): Promise<void> {
       await message.reply(response);
     }
   } catch (error) {
-    console.error("Discord message handling error:", error);
+    logger.error({ err: error }, "Discord message handling error");
     await message.reply("Sorry, something went wrong. Please try again.");
   }
 }
@@ -160,14 +161,14 @@ export async function startDiscordBot(): Promise<boolean> {
   const token = env.DISCORD_BOT_TOKEN;
 
   if (!token) {
-    console.log("Discord bot token not configured - skipping Discord integration");
+    logger.info("Discord bot token not configured - skipping Discord integration");
     return false;
   }
 
   return new Promise((resolve) => {
     client.once(Events.ClientReady, (readyClient) => {
-      console.log(`Discord bot connected as ${readyClient.user.tag}`);
-      console.log(`Bot is in ${readyClient.guilds.cache.size} servers`);
+      logger.info(`Discord bot connected as ${readyClient.user.tag}`);
+      logger.info(`Bot is in ${readyClient.guilds.cache.size} servers`);
       resolve(true);
     });
 
@@ -176,12 +177,12 @@ export async function startDiscordBot(): Promise<boolean> {
     // otherwise crash the process in Node.js 15+.
     client.on(Events.MessageCreate, (message) => {
       handleMessage(message).catch((err) =>
-        console.error("Unhandled Discord message error:", err)
+        logger.error({ err: err }, "Unhandled Discord message error")
       );
     });
 
     client.login(token).catch((error) => {
-      console.error("Failed to login to Discord:", error.message);
+      logger.error({ err: error.message }, "Failed to login to Discord");
       resolve(false);
     });
   });

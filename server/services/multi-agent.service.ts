@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { env } from "../config/env";
@@ -145,8 +146,8 @@ export async function runAgentTurn(
   // hardcoded constant if no DB row exists (e.g. before the seed has been run).
   const dbPrompt = await getLatestPrompt(currentAgentId);
   const basePrompt = dbPrompt
-    ? (console.log(`Using ${agent.name} prompt v${dbPrompt.version}`), dbPrompt.prompt)
-    : (console.log(`Using ${agent.name} fallback prompt`), agent.systemPrompt);
+    ? (logger.info(`Using ${agent.name} prompt v${dbPrompt.version}`), dbPrompt.prompt)
+    : (logger.info(`Using ${agent.name} fallback prompt`), agent.systemPrompt);
 
   const otherAgentId =
     currentAgentId === request.agent1Id ? request.agent2Id : request.agent1Id;

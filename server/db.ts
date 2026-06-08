@@ -8,7 +8,12 @@ import * as schema from "@shared/schema";
  * The pool is only created when DATABASE_URL is set; callers should guard
  * against undefined before importing this module.
  */
-const pool = new Pool({ connectionString: env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 
 /**
  * Drizzle ORM client bound to the shared schema.

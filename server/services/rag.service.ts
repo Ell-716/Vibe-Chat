@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import { PDFParse } from "pdf-parse";
 import { chat } from "./llm.service";
 import type { AIModel } from "./llm.service";
@@ -117,7 +118,7 @@ export async function processDocument(buffer: Buffer, filename: string, userId: 
   const documentId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const textChunks = splitTextIntoChunks(text);
 
-  console.log(`Processing "${filename}": ${totalPages} pages, ${textChunks.length} chunks`);
+  logger.info(`Processing "${filename}": ${totalPages} pages, ${textChunks.length} chunks`);
 
   for (let i = 0; i < textChunks.length; i++) {
     chunks.push({
@@ -139,7 +140,7 @@ export async function processDocument(buffer: Buffer, filename: string, userId: 
   };
 
   documents.set(documentId, doc);
-  console.log(`Document "${filename}" processed: ${textChunks.length} chunks indexed`);
+  logger.info(`Document "${filename}" processed: ${textChunks.length} chunks indexed`);
   return doc;
 }
 
@@ -291,7 +292,7 @@ export async function summarizeDocument(
 
   for (let i = 0; i < docChunks.length; i += BATCH_SIZE) {
     const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-    console.log(`Summarizing batch ${batchNumber} of ${totalBatches}...`);
+    logger.info(`Summarizing batch ${batchNumber} of ${totalBatches}...`);
 
     const batch = docChunks.slice(i, i + BATCH_SIZE);
     const batchText = batch.map((c) => c.content).join("\n\n");

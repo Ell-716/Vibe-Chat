@@ -11,6 +11,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startDiscordBot, destroyDiscordClient } from "./services/discord.service";
 import { env } from "./config/env";
+import { logger } from "./lib/logger";
 
 // Last-resort guard: Discord.js's underlying `ws` library emits low-level
 // WebSocket errors (e.g. "Opening handshake has timed out") directly on the
@@ -23,7 +24,7 @@ process.on("uncaughtException", (err) => {
     msg.includes("Opening handshake has timed out") ||
     msg.includes("WebSocket was closed before the connection was established")
   ) {
-    console.error(`[discord] Non-fatal WebSocket error: ${msg}`);
+    logger.error({ msg }, "[discord] Non-fatal WebSocket error");
     return;
   }
   // Re-throw anything else so genuine bugs still surface.
@@ -100,19 +101,12 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 /**
- * Prints a timestamped log line to stdout.
+ * Logs an info-level message with an optional source label.
  * @param message - The message to log.
- * @param source - Label shown in brackets after the timestamp (defaults to "express").
+ * @param source - Label shown in the log record (defaults to "express").
  */
 export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
+  logger.info({ source }, message);
 }
 
 /**
@@ -128,7 +122,12 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+      logger.info({
+        method: req.method,
+        path,
+        status: res.statusCode,
+        duration: `${duration}ms`,
+      });
     }
   });
 
@@ -150,7 +149,7 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    console.error(err);
+    logger.error(err);
     res.status(status).json({ message });
   });
 

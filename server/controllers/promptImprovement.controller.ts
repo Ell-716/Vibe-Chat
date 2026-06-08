@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { logger } from "../lib/logger";
 import { AGENTS, type AgentTurn } from "../services/multi-agent.service";
 import {
   autoScoreTurns,
@@ -149,7 +150,7 @@ export async function runImprovement(req: Request, res: Response): Promise<void>
 
     res.json({ improved: true, results });
   } catch (error) {
-    console.error("Error running prompt improvement:", error);
+    logger.error({ err: error }, "Error running prompt improvement");
     res.status(500).json({ error: "Failed to run prompt improvement" });
   }
 }
@@ -177,7 +178,7 @@ export async function getAgentPromptHistory(req: Request, res: Response): Promis
     const history = await getPromptHistory(agentId);
     res.json(history);
   } catch (error) {
-    console.error("Error fetching prompt history:", error);
+    logger.error({ err: error }, "Error fetching prompt history");
     res.status(500).json({ error: "Failed to fetch prompt history" });
   }
 }
