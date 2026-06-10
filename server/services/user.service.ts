@@ -6,6 +6,7 @@ const ALLOWED_MODELS = [
   "gpt-4o-mini",
   "claude-sonnet-4-6",
   "gemini-1.5-flash",
+  "deepseek-v4-flash",
 ];
 
 const ALLOWED_APPEARANCES = ["light", "dark", "system"] as const;
