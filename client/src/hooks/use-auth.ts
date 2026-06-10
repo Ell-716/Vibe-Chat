@@ -29,6 +29,10 @@ export function useAuth() {
       }
     },
     staleTime: 5 * 60 * 1000,
+    // Re-check auth state when the tab regains focus so a server-side session
+    // destruction (logout, expiry) is reflected immediately rather than waiting
+    // up to 5 minutes for the stale cache to expire.
+    refetchOnWindowFocus: true,
     retry: false,
   });
 

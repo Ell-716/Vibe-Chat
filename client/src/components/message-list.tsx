@@ -196,6 +196,8 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
     if (isSummary) {
       return (
         <ReactMarkdown
+          disallowedElements={["script", "iframe", "object", "embed"]}
+          unwrapDisallowed={true}
           components={{
             h2: ({ children }) => (
               <h2 className="text-base font-bold mt-4 mb-1" style={{ color: "rgb(0,180,216)" }}>
