@@ -1,4 +1,5 @@
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -12,6 +13,17 @@ import { createServer } from "http";
 import { startDiscordBot, destroyDiscordClient } from "./services/discord.service";
 import { env } from "./config/env";
 import { logger } from "./lib/logger";
+
+// Initialise Sentry as early as possible so it can instrument all subsequent
+// middleware and route handlers. `enabled` is false when SENTRY_DSN is unset,
+// so local/CI environments without a DSN run without any Sentry overhead.
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV ?? "development",
+  // Disable Sentry entirely when no DSN is configured (e.g. local dev).
+  enabled: !!process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
 
 // Last-resort guard: Discord.js's underlying `ws` library emits low-level
 // WebSocket errors (e.g. "Opening handshake has timed out") directly on the
@@ -144,6 +156,9 @@ app.use((req, res, next) => {
       log('Discord bot not started (token not configured or login failed)', 'discord');
     }
   });
+
+  // Must be registered after all routes so Sentry captures errors from every handler.
+  Sentry.setupExpressErrorHandler(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
