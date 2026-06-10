@@ -189,8 +189,13 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (error: any) {
-    logger.error({ err: error }, "Error sending message");
-    const userMessage = error?.message || "Failed to send message";
+    logger.error({ err: error }, "LLM error");
+    // In production, hide raw SDK error messages from the client to avoid
+    // leaking internal details (API keys, model names, provider error codes).
+    const userMessage =
+      env.NODE_ENV === "production"
+        ? "An error occurred. Please try again."
+        : error?.message || "Failed to send message";
     if (res.headersSent) {
       res.write(`data: ${JSON.stringify({ error: userMessage })}\n\n`);
       res.end();

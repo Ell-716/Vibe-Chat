@@ -100,8 +100,15 @@ export async function summarizeDocumentHandler(req: Request, res: Response): Pro
       });
       return;
     }
-    logger.error({ err: error }, "Document summarization error");
-    res.status(500).json({ error: message });
+    logger.error({ err: error }, "RAG error");
+    // In production, hide raw pipeline error messages to avoid leaking
+    // internal details (chunk counts, model names, provider error codes).
+    res.status(500).json({
+      error:
+        env.NODE_ENV === "production"
+          ? "Summarization failed. Please try again."
+          : message,
+    });
   }
 }
 
