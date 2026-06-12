@@ -14,23 +14,18 @@ export async function getMe(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * Handler — updates the authenticated user's display name.
+ * Handler — updates the authenticated user's display name and/or email address.
  * PATCH /api/user/profile
- * Body: { name?: string }
+ * Body: { name?: string, email?: string } — at least one field required.
  * @param req - Express request.
  * @param res - Express response.
  */
 export async function updateProfile(req: Request, res: Response): Promise<void> {
   const userId = (req.user as User).id;
-  const { name } = req.body as { name?: string };
-
-  if (name === undefined) {
-    res.status(400).json({ message: "name is required" });
-    return;
-  }
+  const { name, email } = req.body as { name?: string; email?: string };
 
   try {
-    const updated = await userService.updateUserProfile(userId, name);
+    const updated = await userService.updateUserProfile(userId, { name, email });
     res.json(updated);
   } catch (err) {
     const e = err as Error & { statusCode?: number };
