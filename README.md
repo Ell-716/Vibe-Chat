@@ -19,25 +19,23 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **Session-based authentication** — server-side sessions with memorystore; 24-hour TTL, httpOnly cookies.
 - **Private data per user** — conversations, messages, and uploaded documents are isolated by `userId`; every `/api/*` route requires a valid session.
 
-### Level 1 — Core Chat
+### Core Features
 - **Multi-model LLM chat** — Streaming responses via Server-Sent Events. Conversations and messages are persisted in a sidebar with rename and delete support.
 - **MCP Tools (Google Drive & Sheets)** — The AI can read files and spreadsheets through Zapier MCP. Tool invocations surface as status messages in the chat stream.
 - **ElevenLabs Voice Widget** — Voice input via speech-to-text and optional voice output via TTS. A toolbar toggle enables auto-playback of AI responses.
 
-### Level 2 — Advanced Features
+### Advanced Features
 - **Multiple AI models** — Switch between Llama 3.3 70B (Groq, default), GPT-4o Mini (OpenAI), Claude Sonnet (Anthropic), Gemini Flash (Google), and DeepSeek V4 Flash (DeepSeek) from the header.
 - **Prompt & Agent Management** — Create, edit, and delete custom agents with their own system prompts, icons, and descriptions. Five built-in agents (General, Coder, Writer, Analyst, Tutor) are protected from edit/delete. Two example custom agents are pre-seeded (Debate Coach, Career Advisor); users can create unlimited additional agents.
 - **Support Workflow Automation** — Full support dashboard at `/support`: ticket creation, AI-powered categorisation, priority and sentiment analysis, smart agent routing, SLA deadlines, escalation rules, AI-suggested responses, and aggregate stats.
 - **Multi-channel support (Discord + Email)** — A Discord bot responds to DMs and @mentions. EmailJS sends customer notifications on ticket creation and agent replies.
 - **Voice Response to Text** — AI responses are read aloud automatically after each message (markdown stripped before synthesis).
 
-### Level 3 — RAG & PDF Summarization
+### AI & Intelligence
 - **RAG Integration** — Upload PDF files; the server parses, chunks, and indexes them with TF-IDF keyword scoring. Each message retrieves the top-k most relevant chunks and injects them into the system prompt as context. Documents are scoped to the uploading user.
 - **PDF Summarization** — After uploading, a "Summarize" chip appears above the chat input. Clicking it calls a dedicated `/api/documents/:id/summarize` endpoint that uses a map-reduce pattern: documents with more than 10 chunks are split into batches of 10, each batch summarized independently, then combined into a structured final summary (Overview, Key Points, Main Topics, Key Takeaways). A 2-second delay between LLM calls prevents hitting Groq's free-tier rate limit.
-
 - **Multi-Agent Conversation** — Pick any two AI agents from the sidebar at `/multi-agent`, enter a topic, and watch them debate or collaborate for 6 sequential turns. Five agents are available: General Assistant (balanced), Creative Writer (imaginative), Data Analyst (evidence-driven), Learning Tutor (patient & clear), and Code Expert (technical). Choose **Debate** mode for opposing arguments or **Collaborate** mode for constructive idea-building. After 6 turns, use **Continue**, **Redirect** (new topic, same agents), or **Stop** to control the conversation.
-
-- **Self-Improving Agents** — After each multi-agent conversation completes, agents can automatically improve their system prompts based on two feedback sources: per-turn 👍/👎 votes cast by the user and automatic LLM quality scoring (clarity, personality accuracy, relevance on a 1–5 scale). Clicking **Improve Agents** sends all feedback and scores to `POST /api/multi-agent/improve`, which generates improved prompt versions via Groq and persists them as versioned rows in the `agent_prompts` PostgreSQL table. Improved prompts are loaded automatically on the next conversation. This feature is scoped exclusively to the multi-agent page.
+- **Self-Improving Agents** — After each multi-agent conversation completes, agents can automatically improve their system prompts based on two feedback sources: per-turn 👍/👎 votes cast by the user and automatic LLM quality scoring (clarity, personality accuracy, relevance on a 1–5 scale). Clicking **Improve Agents** sends all feedback and scores to `POST /api/multi-agent/improve`, which generates improved prompt versions via Groq and persists them as versioned rows in the `agent_prompts` PostgreSQL table. Improved prompts are loaded automatically on the next conversation.
 
 ### Settings & Help
 - **Settings page** — Full settings UI at `/settings` with five tabs: Account, Preferences, Appearance, Data & Privacy, and Danger Zone.
@@ -46,6 +44,18 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **Light / dark / system theme switching** — Three-way toggle (Light, Dark, System) in the Appearance tab; system mode tracks the OS preference and defaults to dark when preference is unknown.
 - **Account deletion** — Danger Zone tab with a confirmation modal requiring the user to type `DELETE`; cascades deletes all user data.
 - **Help page** — Full FAQ page at `/help` with a getting-started guide, grouped accordion FAQ, and a link to the support ticket system.
+
+### Security & Infrastructure
+- **Helmet security headers** — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy applied globally via `helmet` middleware.
+- **CORS** — Locked to `APP_URL`; credentials mode enabled for session cookies.
+- **Rate limiting** — Per-route limiters via `express-rate-limit`: auth routes (20 req/15 min), LLM messages (20 req/min), voice endpoints (10 req/min), document upload/summarize (5 req/min), multi-agent turns (15 req/min). A global limiter (100 req/15 min) covers everything else.
+- **Zod input validation** — All mutation endpoints validate request bodies with Zod schemas; invalid payloads return structured 400 errors before reaching business logic.
+- **Session hardening** — Cookies set with `httpOnly: true`, `sameSite: "lax"`, and `secure: true` in production. Required env vars (`SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DATABASE_URL`) are validated at startup in production mode.
+- **Structured logging** — `pino` replaces all `console.*` calls. JSON output in production; human-readable colourised output via `pino-pretty` in development. Log level controlled by `LOG_LEVEL` env var.
+- **Sentry error tracking** — `@sentry/node` initialised as the first import in `server/index.ts`; `Sentry.setupExpressErrorHandler(app)` captures all unhandled Express errors. Disabled automatically when `SENTRY_DSN` is not set (no overhead in dev/CI).
+- **Production error sanitisation** — Raw LLM SDK error messages (which can expose API keys, model names, or provider internals) are replaced with generic client messages in `NODE_ENV=production`; full errors are logged server-side.
+- **Database indexes** — Indexes on all foreign key columns in the PostgreSQL schema to prevent full-table scans on join queries.
+- **PostgreSQL connection pooling** — `pg.Pool` reuses connections across requests; pool size tuned via `DATABASE_URL` connection string parameters.
 
 ---
 
@@ -231,42 +241,17 @@ npm run dev
 ### Available Scripts
 
 ```bash
-npm run dev        # Development server — Express + Vite HMR on http://localhost:5000
-npm run build      # Production build (esbuild + Vite)
-npm start          # Serve the production build
-npm run check      # TypeScript type-check only
-npm run db:push    # Push Drizzle schema changes to PostgreSQL
+npm run dev              # Development server — Express + Vite HMR on http://localhost:5000
+npm run build            # Production build (esbuild + Vite)
+npm start                # Serve the production build
+npm run check            # TypeScript type-check only
+npm run db:push          # Push Drizzle schema changes to PostgreSQL
+npm test                 # Run all tests once (vitest)
+npm run test:watch       # Run tests in watch mode
+npm run test:coverage    # Run tests with coverage report
+npm run seed:agents      # Seed v1 system prompts for 5 built-in agents into agent_prompts table
+npm run seed:custom-agents  # Upsert Debate Coach + Career Advisor example custom agents
 ```
-
----
-
-## Roadmap
-
-- ✅ **Google OAuth authentication** — Sign in with Google; session-based auth with Passport.js.
-- ✅ **PostgreSQL persistent storage** — Drizzle ORM-backed `DatabaseStorage`; schema managed via `db:push`.
-- ✅ **Private data per user** — All conversations and documents are isolated by `userId`.
-- ✅ **Frontend redesign with AI-Native UI** — Glassmorphism dark theme with cyan/indigo palette, custom message bubbles, and Orbitron/DM Sans typography.
-- ✅ **Video background landing page** — Full-screen AI-generated video (`ai-head.mp4`) with directional gradient overlay and right-side sign-in panel.
-- ✅ **Custom AI head logo** — AI robot head (`logo.png`) used in the empty chat state with float animation and cyan glow.
-- ✅ **Settings page** — Account management, per-user model/agent preferences, and light/dark/system theme switching.
-- ✅ **Help page** — Getting-started guide, grouped FAQ accordion, and link to the support ticket system.
-- ✅ **Account management** — Edit display name, manage preferences, and delete account with full data cascade.
-- ✅ **Multi-model AI support** — Llama 3.3 70B (Groq), GPT-4o Mini, Claude Sonnet, Gemini Flash, and DeepSeek V4 Flash selectable from the header.
-- ✅ **Prompt & agent management** — Create, edit, and delete custom agents with system prompts, icons, and descriptions.
-- ✅ **Support dashboard** — AI-powered ticket routing, priority/sentiment analysis, escalation rules, SLA tracking, and AI-suggested responses.
-- ✅ **Discord + Email integration** — Discord bot responds to DMs and @mentions; EmailJS sends customer notifications.
-- ✅ **Voice I/O** — ElevenLabs speech-to-text input and text-to-speech auto-playback for AI responses.
-- ✅ **MCP tools (Google Drive & Sheets)** — AI can read Drive files and update Sheets via Zapier MCP.
-- ✅ **RAG document chat** — Upload PDFs; server parses, chunks, and indexes them with TF-IDF for per-message context injection.
-- ✅ **PDF summarization** — Map-reduce summarization with structured output (Overview, Key Points, Main Topics, Key Takeaways).
-- ✅ **Multi-Agent Conversation** — Two AI agents debate or collaborate on any topic for 6 sequential turns, with Continue/Redirect/Stop controls.
-- ✅ **Self-Improving Agents** — Per-turn 👍/👎 voting and automatic LLM quality scoring drive versioned prompt improvements stored in PostgreSQL.
-- **Data export** — Allow users to download their conversation history and uploaded documents.
-- **Conversation sharing** — Share a read-only link to a conversation with others.
-- **Email / password auth option** — Alternative to Google OAuth for self-hosted deployments.
-- **Admin dashboard** — Usage analytics, user management, and system health for operators.
-- **Ticket analytics** — Charts for ticket volume, response time trends, and agent performance using Recharts.
-- **Streaming tool results** — Surface MCP tool call progress inline in the chat bubble.
 
 ---
 
