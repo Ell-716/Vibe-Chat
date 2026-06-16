@@ -268,7 +268,7 @@ const createTicketMessageSchema = z.object({
  * an agent posts a public (non-internal) reply for the first time.
  * @param req.body.content - Message text (required).
  * @param req.body.senderId - ID of the sender (required).
- * @param req.body.senderType - "user" | "agent" | "system" (required).
+ * @param req.body.senderType - "customer" | "agent" | "system" (required).
  * @param req.body.isInternal - Whether the message is an internal note. Defaults to false.
  */
 export async function createTicketMessage(req: Request, res: Response): Promise<void> {
