@@ -46,16 +46,22 @@ process.on("uncaughtException", (err) => {
 const app = express();
 const httpServer = createServer(app);
 
+// In development, disable the CSP so Vite's HMR inline scripts and React
+// Refresh preamble are not blocked. The strict CSP is only needed in
+// production where the app is served as pre-built static files.
+const isDev = env.NODE_ENV !== "production";
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "style-src": ["'self'", "'unsafe-inline'"],
-        "img-src": ["'self'", "data:", "https:"],
-        "media-src": ["'self'", "blob:"],
-      },
-    },
+    contentSecurityPolicy: isDev
+      ? false
+      : {
+          directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "style-src": ["'self'", "'unsafe-inline'"],
+            "img-src": ["'self'", "data:", "https:"],
+            "media-src": ["'self'", "blob:"],
+          },
+        },
   })
 );
 
