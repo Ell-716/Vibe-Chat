@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Rocket, FileText, Bot, ChevronDown, Users } from "lucide-react";
+import { ArrowLeft, Rocket, FileText, Bot, ChevronDown, Users, Mic, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 
 // ── Design tokens (mirrors settings.tsx pattern) ──────────────────────────────
 
@@ -10,7 +10,7 @@ const BORDER = "hsl(var(--border))";
 
 // ── Getting-started cards ─────────────────────────────────────────────────────
 
-const QUICK_CARDS = [
+const QUICK_CARDS: Array<{ Icon: React.ElementType; title: string; description: React.ReactNode }> = [
   {
     Icon: Rocket,
     title: "Start Chatting",
@@ -30,6 +30,24 @@ const QUICK_CARDS = [
     Icon: Users,
     title: "Multi-Agent",
     description: "Click Multi-Agent in the sidebar to watch two AI agents debate or collaborate on any topic.",
+  },
+  {
+    Icon: Mic,
+    title: "Voice Commands",
+    description: "Click the mic icon in the chat bar to speak your message. Enable voice responses in the toolbar to have AI replies read aloud automatically.",
+  },
+  {
+    Icon: Sparkles,
+    title: "Improve Agents",
+    description: (
+      <>
+        In Multi-Agent conversations, vote{" "}
+        <ThumbsUp className="inline h-3 w-3 align-middle" style={{ color: "#00B4D8" }} />
+        /
+        <ThumbsDown className="inline h-3 w-3 align-middle" style={{ color: "#00B4D8" }} />
+        {" "}on each turn. After 6 turns click Improve Agents to let the AI rewrite and upgrade agent prompts based on your feedback.
+      </>
+    ),
   },
 ];
 

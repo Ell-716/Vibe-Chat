@@ -78,7 +78,13 @@ const globalLimiter = rateLimit({
   message: { error: "Too many requests, please try again later" },
 });
 
-app.use(globalLimiter);
+// Only apply the global limiter to API routes.
+// In dev mode, Vite serves each ES module as a separate HTTP request
+// (easily 200+ per page load), so applying this to all routes would
+// exhaust the 100-request window and block static assets like images.
+// In production, static files are served by the CDN/web server, never
+// reaching Express, so scoping to /api is correct in both environments.
+app.use("/api", globalLimiter);
 
 const MemoryStoreSession = MemoryStore(session);
 
