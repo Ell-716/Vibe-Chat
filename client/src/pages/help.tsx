@@ -330,11 +330,11 @@ export default function HelpPage() {
         </div>
 
         {/* ── Getting started cards ─────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12" style={{ gridAutoRows: "1fr" }}>
           {QUICK_CARDS.map(({ Icon, title, description }) => (
             <div
               key={title}
-              className="rounded-xl p-5 flex flex-col gap-3 transition-all duration-200"
+              className="rounded-xl p-5 flex flex-col gap-3 transition-all duration-200 h-full"
               style={{
                 background: CARD_BG,
                 border: `1px solid ${BORDER}`,
