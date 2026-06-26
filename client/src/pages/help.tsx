@@ -100,6 +100,19 @@ const FAQ_GROUPS: Array<{
     ],
   },
   {
+    category: "Voice",
+    items: [
+      {
+        q: "How do I use voice input?",
+        a: "Click the microphone icon in the chat input bar and speak. Your speech is converted to text automatically via ElevenLabs. You can also enable voice responses in the toolbar — the AI will read its replies aloud after each message.",
+      },
+      {
+        q: "Can I turn off voice responses?",
+        a: "Yes. Click the speaker icon in the toolbar to toggle automatic voice responses on or off. Your preference is saved locally.",
+      },
+    ],
+  },
+  {
     category: "Integrations",
     items: [
       {
