@@ -13,6 +13,5 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --only=production --legacy-peer-deps
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/client/dist ./client/dist
 EXPOSE 5000
 CMD ["npm", "start"]
