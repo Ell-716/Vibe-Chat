@@ -255,6 +255,49 @@ npm run seed:custom-agents  # Upsert Debate Coach + Career Advisor example custo
 
 ---
 
+## Running with Docker
+
+### Prerequisites
+- Docker and Docker Compose installed
+
+### Quick Start
+
+```bash
+# Copy environment file
+cp .env.example .env
+# Fill in your values in .env, then:
+docker compose up --build
+
+# The app will be available at http://localhost:5000
+```
+
+### Production Image
+
+```bash
+# Build the production image
+docker build -t vibe-chat .
+
+# Run with environment variables
+docker run -p 5000:5000 \
+  --env-file .env \
+  vibe-chat
+```
+
+---
+
+## CI/CD
+
+GitHub Actions workflows run automatically:
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| CI — Type Check & Tests | Every push and PR to main | TypeScript check + vitest test suite |
+| Docker — Build Verification | Push to main | Builds production Docker image |
+
+All checks must pass before merging to main.
+
+---
+
 ## License
 
 MIT
