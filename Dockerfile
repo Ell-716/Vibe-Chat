@@ -1,5 +1,5 @@
-# Stage 1 — builder
-FROM node:20-alpine AS builder
+# Stage 1 — builder (Debian-based: Rolldown/Vite 8 native binaries require glibc, not musl)
+FROM node:20 AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
