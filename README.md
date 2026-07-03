@@ -300,4 +300,4 @@ All checks must pass before merging to main.
 
 ## License
 
-MIT
+MIT © 2026 Elena — see [LICENSE](LICENSE) for full text.
