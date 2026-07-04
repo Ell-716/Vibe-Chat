@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bot, Copy, Check, Volume2, VolumeX, Loader2 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TypingIndicator } from "@/components/typing-indicator";
@@ -221,7 +222,7 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
       }
       return <code className="text-sm font-mono text-foreground">{children}</code>;
     },
-  } as const;
+  };
 
   const renderContent = (content: string) => {
     // Summary messages contain structured markdown — render with ReactMarkdown
@@ -231,20 +232,20 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
           disallowedElements={["script", "iframe", "object", "embed"]}
           unwrapDisallowed={true}
           components={{
-            h2: ({ children }: { children: React.ReactNode }) => (
+            h2: ({ children }) => (
               <h2 className="text-base font-bold mt-4 mb-1" style={{ color: "rgb(0,180,216)" }}>
                 {children}
               </h2>
             ),
-            ul: ({ children }: { children: React.ReactNode }) => (
+            ul: ({ children }) => (
               <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
             ),
-            ol: ({ children }: { children: React.ReactNode }) => (
+            ol: ({ children }) => (
               <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>
             ),
-            li: ({ children }: { children: React.ReactNode }) => <li className="text-[15px] leading-relaxed">{children}</li>,
-            p: ({ children }: { children: React.ReactNode }) => <p className="mb-2 last:mb-0">{children}</p>,
-            strong: ({ children }: { children: React.ReactNode }) => <strong className="font-semibold">{children}</strong>,
+            li: ({ children }) => <li className="text-[15px] leading-relaxed">{children}</li>,
+            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           }}
         >
           {content}
@@ -295,10 +296,12 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
         );
       }
 
-      // Text segment: render as markdown so headings, bold, lists, tables etc. display correctly
+      // Text segment: render as markdown so headings, bold, lists, tables etc. display correctly.
+      // remarkGfm enables GitHub Flavored Markdown: tables, strikethrough, task lists, etc.
       return (
         <ReactMarkdown
           key={index}
+          remarkPlugins={[remarkGfm]}
           disallowedElements={["script", "iframe", "object", "embed"]}
           unwrapDisallowed={true}
           components={markdownComponents}
