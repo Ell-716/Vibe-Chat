@@ -84,16 +84,17 @@ export default function ChatPage() {
     queryKey: ["/api/agents"],
   });
 
-  // Apply user preferences (model + agent) exactly once when both the user
-  // record and agent list are available. Preferences take priority over the
-  // isDefault flag so the chat page reflects what the user set in Settings.
+  // Apply user preferences (model + agent) exactly once when the user record,
+  // agent list, and models list are all available. Preferences take priority
+  // over the initial default, but only if the stored model id still exists in
+  // the current models list (guards against stale ids after a model migration).
   useEffect(() => {
-    if (prefsApplied.current || !user || agents.length === 0) return;
+    if (prefsApplied.current || !user || agents.length === 0 || models.length === 0) return;
     prefsApplied.current = true;
 
     const prefs = user.preferences as UserPreferences | null;
 
-    if (prefs?.defaultModel) {
+    if (prefs?.defaultModel && models.some(m => m.id === prefs.defaultModel)) {
       setSelectedModel(prefs.defaultModel);
     }
 
@@ -102,7 +103,7 @@ export default function ChatPage() {
       ? agents.find(a => a.id === preferredAgentId)
       : null;
     setSelectedAgent(preferredAgent ?? agents.find(a => a.isDefault) ?? agents[0]);
-  }, [user, agents]);
+  }, [user, agents, models]);
 
   const { data: documents = [] } = useQuery<RAGDocument[]>({
     queryKey: ["/api/documents"],
