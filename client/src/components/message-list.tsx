@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Bot, Copy, Check, Volume2, VolumeX, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TypingIndicator } from "@/components/typing-indicator";
@@ -191,6 +191,38 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
    * @param content - Raw message string.
    * @returns Array of React nodes ready to render inside the message bubble.
    */
+  /** Shared markdown components for assistant message text segments. */
+  const markdownComponents: Components = {
+    h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2">{children}</h1>,
+    h2: ({ children }) => <h2 className="text-lg font-bold mt-3 mb-1">{children}</h2>,
+    h3: ({ children }) => <h3 className="text-base font-semibold mt-3 mb-1">{children}</h3>,
+    ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
+    ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
+    li: ({ children }) => <li className="text-[15px] leading-relaxed">{children}</li>,
+    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+    em: ({ children }) => <em className="italic">{children}</em>,
+    hr: () => <hr className="my-3 border-border" />,
+    table: ({ children }) => (
+      <div className="overflow-x-auto my-3">
+        <table className="border-collapse w-full text-sm">{children}</table>
+      </div>
+    ),
+    th: ({ children }) => (
+      <th className="border border-border px-3 py-1 text-left font-semibold bg-muted">{children}</th>
+    ),
+    td: ({ children }) => (
+      <td className="border border-border px-3 py-1">{children}</td>
+    ),
+    code: ({ children, className }) => {
+      // Inline code only — block code is handled by the pre override below
+      if (!className) {
+        return <code className="bg-muted px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
+      }
+      return <code className="text-sm font-mono text-foreground">{children}</code>;
+    },
+  } as const;
+
   const renderContent = (content: string) => {
     // Summary messages contain structured markdown — render with ReactMarkdown
     if (isSummary) {
@@ -199,20 +231,20 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
           disallowedElements={["script", "iframe", "object", "embed"]}
           unwrapDisallowed={true}
           components={{
-            h2: ({ children }) => (
+            h2: ({ children }: { children: React.ReactNode }) => (
               <h2 className="text-base font-bold mt-4 mb-1" style={{ color: "rgb(0,180,216)" }}>
                 {children}
               </h2>
             ),
-            ul: ({ children }) => (
+            ul: ({ children }: { children: React.ReactNode }) => (
               <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
             ),
-            ol: ({ children }) => (
+            ol: ({ children }: { children: React.ReactNode }) => (
               <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>
             ),
-            li: ({ children }) => <li className="text-[15px] leading-relaxed">{children}</li>,
-            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+            li: ({ children }: { children: React.ReactNode }) => <li className="text-[15px] leading-relaxed">{children}</li>,
+            p: ({ children }: { children: React.ReactNode }) => <p className="mb-2 last:mb-0">{children}</p>,
+            strong: ({ children }: { children: React.ReactNode }) => <strong className="font-semibold">{children}</strong>,
           }}
         >
           {content}
@@ -220,8 +252,23 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
       );
     }
 
+    // User messages: plain text, no markdown interpretation
+    if (isUser) {
+      return (
+        <span className="whitespace-pre-wrap">
+          {content.split("\n").map((line, i, arr) => (
+            <span key={i}>
+              {line}
+              {i < arr.length - 1 && <br />}
+            </span>
+          ))}
+        </span>
+      );
+    }
+
+    // Assistant messages: split at fenced code blocks so code gets the styled
+    // block with a copy button; all other text is rendered as markdown.
     const parts = formatContent(content);
-    // Separate counter from array index so code blocks keep their own stable copy-button IDs
     let codeBlockIndex = 0;
 
     return parts.map((part, index) => {
@@ -248,15 +295,16 @@ function MessageBubble({ message, isStreaming = false, summaryDocName }: { messa
         );
       }
 
+      // Text segment: render as markdown so headings, bold, lists, tables etc. display correctly
       return (
-        <span key={index} className="whitespace-pre-wrap">
-          {part.content.split("\n").map((line, i, arr) => (
-            <span key={i}>
-              {line}
-              {i < arr.length - 1 && <br />}
-            </span>
-          ))}
-        </span>
+        <ReactMarkdown
+          key={index}
+          disallowedElements={["script", "iframe", "object", "embed"]}
+          unwrapDisallowed={true}
+          components={markdownComponents}
+        >
+          {part.content}
+        </ReactMarkdown>
       );
     });
   };
