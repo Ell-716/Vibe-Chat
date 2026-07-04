@@ -72,7 +72,7 @@ Respond in JSON format with these exact fields:
 
   try {
     const response = await getGroq().chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: env.GROQ_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Subject: ${subject}\n\nDescription: ${description}` },
@@ -145,7 +145,7 @@ Guidelines:
 
   try {
     const response = await getGroq().chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: env.GROQ_MODEL,
       messages,
       max_tokens: 1024,
     });

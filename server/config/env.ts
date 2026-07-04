@@ -24,6 +24,8 @@ export const env = {
 
   // ── Groq (default LLM provider) ───────────────────────────────────────────
   GROQ_API_KEY: process.env.GROQ_API_KEY as string | undefined,
+  // Model to use with Groq. Defaults to openai/gpt-oss-120b (reasoning model).
+  GROQ_MODEL: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
 
   // ── Optional LLM providers (multi-model switching) ────────────────────────
   OPENAI_API_KEY: process.env.OPENAI_API_KEY as string | undefined,

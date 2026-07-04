@@ -53,7 +53,7 @@ export default function ChatPage() {
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>("llama-3.3-70b-versatile");
+  const [selectedModel, setSelectedModel] = useState<string>("openai/gpt-oss-120b");
   const [voiceResponseEnabled, setVoiceResponseEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem("voiceResponseEnabled");
     return saved ? JSON.parse(saved) : false;

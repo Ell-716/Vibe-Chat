@@ -57,7 +57,7 @@ async function generateAIResponse(userId: string, userMessage: string): Promise<
     }
 
     const response = await getGroq().chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: env.GROQ_MODEL,
       messages: [
         {
           role: "system",

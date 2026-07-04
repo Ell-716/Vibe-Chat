@@ -9,7 +9,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   avatar: text("avatar"),
-  preferences: jsonb("preferences").default(sql`'{"defaultModel":"llama-3.3-70b-versatile","defaultAgent":"general","appearance":"system"}'::jsonb`),
+  preferences: jsonb("preferences").default(sql`'{"defaultModel":"openai/gpt-oss-120b","defaultAgent":"general","appearance":"system"}'::jsonb`),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });

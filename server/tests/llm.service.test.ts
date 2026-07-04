@@ -8,7 +8,7 @@ import type { AIModel } from "../services/llm.service";
 // user-friendly message rather than the raw SDK internals.
 
 const BASE_MESSAGES = [{ role: "user" as const, content: "hello" }];
-const GROQ_MODEL: AIModel = "llama-3.3-70b-versatile";
+const GROQ_MODEL: AIModel = "openai/gpt-oss-120b";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

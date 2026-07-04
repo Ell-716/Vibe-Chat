@@ -25,7 +25,7 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 - **ElevenLabs Voice Widget** — Voice input via speech-to-text and optional voice output via TTS. A toolbar toggle enables auto-playback of AI responses.
 
 ### Advanced Features
-- **Multiple AI models** — Switch between Llama 3.3 70B (Groq, default), GPT-4o Mini (OpenAI), Claude Sonnet (Anthropic), Gemini Flash (Google), and DeepSeek V4 Flash (DeepSeek) from the header.
+- **Multiple AI models** — Switch between GPT-OSS 120B (Groq, default), GPT-4o Mini (OpenAI), Claude Sonnet (Anthropic), Gemini Flash (Google), and DeepSeek V4 Flash (DeepSeek) from the header.
 - **Prompt & Agent Management** — Create, edit, and delete custom agents with their own system prompts, icons, and descriptions. Five built-in agents (General, Coder, Writer, Analyst, Tutor) are protected from edit/delete. Two example custom agents are pre-seeded (Debate Coach, Career Advisor); users can create unlimited additional agents.
 - **Support Workflow Automation** — Full support dashboard at `/support`: ticket creation, AI-powered categorisation, priority and sentiment analysis, smart agent routing, SLA deadlines, escalation rules, AI-suggested responses, and aggregate stats.
 - **Multi-channel support (Discord + Email)** — A Discord bot responds to DMs and @mentions. EmailJS sends customer notifications on ticket creation and agent replies.
@@ -91,7 +91,7 @@ All color tokens live in `client/src/index.css` as HSL CSS custom properties (`:
 | Frontend | React 18, Vite, Tailwind CSS, shadcn/ui, TanStack Query, wouter |
 | Backend | Node.js, Express, TypeScript, tsx |
 | Auth | Passport.js, passport-google-oauth20, express-session, memorystore |
-| Default AI | Groq (Llama 3.3 70B) |
+| Default AI | Groq (GPT-OSS 120B) |
 | Additional AI | OpenAI (GPT-4o Mini), Anthropic (Claude Sonnet), Google Gemini Flash |
 | Voice | ElevenLabs (TTS + STT) |
 | MCP / Tools | Zapier MCP (Google Drive, Google Sheets) |
@@ -224,7 +224,7 @@ npm run dev
 | `GOOGLE_CLIENT_SECRET` | **Yes** | OAuth 2.0 client secret from Google Cloud Console. |
 | `APP_URL` | **Yes** | Base URL of the app, used to construct the OAuth callback URL (e.g. `http://localhost:5000`). |
 | `DATABASE_URL` | **Yes** | PostgreSQL connection string (e.g. `postgresql://localhost:5432/vibechat`). |
-| `GROQ_API_KEY` | **Yes** | Default AI provider (Llama 3.3 70B). Get one at [console.groq.com](https://console.groq.com). |
+| `GROQ_API_KEY` | **Yes** | Default AI provider (GPT-OSS 120B reasoning model). Get one at [console.groq.com](https://console.groq.com). |
 | `OPENAI_API_KEY` | Optional | Enables GPT-4o Mini model and support ticket AI analysis. |
 | `ANTHROPIC_API_KEY` | Optional | Enables Claude Sonnet model. |
 | `GOOGLE_GEMINI_API_KEY` | Optional | Enables Gemini Flash model. |

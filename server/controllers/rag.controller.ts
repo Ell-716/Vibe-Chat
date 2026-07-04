@@ -77,11 +77,11 @@ export function removeDocument(req: Request, res: Response): void {
  * Uses a direct summarization for small documents (≤ 10 chunks) or a map-reduce
  * strategy for larger ones.
  * @param req.params.id - The document ID to summarize.
- * @param req.body.model - The AI model identifier to use; defaults to llama-3.3-70b-versatile.
+ * @param req.body.model - The AI model identifier to use; defaults to env.GROQ_MODEL.
  */
 export async function summarizeDocumentHandler(req: Request, res: Response): Promise<void> {
   const documentId = req.params.id;
-  const model = (req.body.model as string) || "llama-3.3-70b-versatile";
+  const model = (req.body.model as string) || env.GROQ_MODEL;
   const userId = req.user!.id;
 
   try {

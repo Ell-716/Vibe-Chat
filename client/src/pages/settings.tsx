@@ -300,7 +300,7 @@ function PreferencesTab() {
     },
   });
 
-  const currentModel = prefs.defaultModel ?? "llama-3.3-70b-versatile";
+  const currentModel = prefs.defaultModel ?? "openai/gpt-oss-120b";
   const currentAgent = prefs.defaultAgent ?? "general";
 
   return (

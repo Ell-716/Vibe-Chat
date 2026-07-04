@@ -30,7 +30,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     email: "test@example.com",
     name: "Test User",
     avatar: null,
-    preferences: { defaultModel: "llama-3.3-70b-versatile", defaultAgent: "general", appearance: "system" },
+    preferences: { defaultModel: "openai/gpt-oss-120b", defaultAgent: "general", appearance: "system" },
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

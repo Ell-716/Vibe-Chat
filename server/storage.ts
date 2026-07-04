@@ -63,7 +63,7 @@ export interface IStorage {
 
 /** Default user preferences applied when none are stored yet. */
 const DEFAULT_PREFERENCES: UserPreferences = {
-  defaultModel: "llama-3.3-70b-versatile",
+  defaultModel: "openai/gpt-oss-120b",
   defaultAgent: "general",
   appearance: "system",
 };

@@ -305,7 +305,7 @@ export class DatabaseStorage implements IStorage {
       throw err;
     }
     const defaults: UserPreferences = {
-      defaultModel: "llama-3.3-70b-versatile",
+      defaultModel: "openai/gpt-oss-120b",
       defaultAgent: "general",
       appearance: "system",
     };

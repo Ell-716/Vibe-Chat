@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { logger } from "../lib/logger";
+import { env } from "../config/env";
 import { AGENTS, type AgentTurn } from "../services/multi-agent.service";
 import {
   autoScoreTurns,
@@ -92,7 +93,7 @@ export async function submitFeedback(req: Request, res: Response): Promise<void>
  *
  * @param req.body.conversationId - Session UUID used to look up stored feedback.
  * @param req.body.turns - Complete list of AgentTurn objects from the conversation.
- * @param req.body.model - Optional LLM model id; defaults to llama-3.3-70b-versatile.
+ * @param req.body.model - Optional LLM model id; defaults to env.GROQ_MODEL.
  * @returns 200 { improved: false, reason } when skipped, or
  *          200 { improved: true, results: ImprovementResult[] } otherwise.
  */
@@ -109,7 +110,7 @@ export async function runImprovement(req: Request, res: Response): Promise<void>
     return;
   }
 
-  const resolvedModel = model && model.trim() !== "" ? model : "llama-3.3-70b-versatile";
+  const resolvedModel = model && model.trim() !== "" ? model : env.GROQ_MODEL;
   const storedFeedback = feedbackStore.get(conversationId) ?? [];
 
   try {

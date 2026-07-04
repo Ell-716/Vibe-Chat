@@ -2,7 +2,7 @@ import { storage } from "../storage";
 import type { User, UserPreferences } from "@shared/schema";
 
 const ALLOWED_MODELS = [
-  "llama-3.3-70b-versatile",
+  "openai/gpt-oss-120b",
   "gpt-4o-mini",
   "claude-sonnet-4-6",
   "gemini-1.5-flash",
@@ -12,7 +12,7 @@ const ALLOWED_MODELS = [
 const ALLOWED_APPEARANCES = ["light", "dark", "system"] as const;
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-  defaultModel: "llama-3.3-70b-versatile",
+  defaultModel: "openai/gpt-oss-120b",
   defaultAgent: "general",
   appearance: "system",
 };

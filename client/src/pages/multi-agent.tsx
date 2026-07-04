@@ -739,7 +739,7 @@ export default function MultiAgentPage() {
               topic,
               history: currentHistory,
               currentAgentId,
-              model: "llama-3.3-70b-versatile",
+              model: "openai/gpt-oss-120b",
             }),
           });
 
@@ -796,7 +796,7 @@ export default function MultiAgentPage() {
         body: JSON.stringify({
           conversationId,
           turns: history,
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
         }),
       });
       if (!res.ok) throw new Error("Request failed");

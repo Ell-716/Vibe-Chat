@@ -128,7 +128,7 @@ function getGroq(): OpenAI {
  * @param request - The full conversation context including both agent ids, mode,
  *   topic, and message history so far.
  * @param currentAgentId - The id of the agent whose turn it is to speak.
- * @param model - The LLM model id to use (defaults to llama-3.3-70b-versatile
+ * @param model - The LLM model id to use (defaults to env.GROQ_MODEL
  *   when the caller passes an empty string).
  * @returns A new AgentTurn containing the agent's response and its turn number.
  */
@@ -187,8 +187,12 @@ export async function runAgentTurn(
       : historyMessages;
 
   const resolvedModel =
-    model && model.trim() !== "" ? model : "llama-3.3-70b-versatile";
+    model && model.trim() !== "" ? model : env.GROQ_MODEL;
 
+  // NOTE: openai/gpt-oss-120b is a reasoning model. Reasoning tokens go into a
+  // separate field on the response object; choices[0].message.content is the
+  // final answer only. The 512 max_tokens cap controls visible completion tokens
+  // (reasoning is excluded). If responses are truncated, consider raising this.
   const response = await getGroq().chat.completions.create({
     model: resolvedModel,
     messages: [{ role: "system", content: systemPrompt }, ...messages],

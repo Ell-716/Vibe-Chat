@@ -69,7 +69,7 @@ function getGroq(): OpenAI {
  * @returns A non-empty model id string.
  */
 function resolveModel(model: string): string {
-  return model && model.trim() !== "" ? model : "llama-3.3-70b-versatile";
+  return model && model.trim() !== "" ? model : env.GROQ_MODEL;
 }
 
 /**

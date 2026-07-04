@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { logger } from "../lib/logger";
+import { env } from "../config/env";
 import {
   AGENTS,
   runAgentTurn,
@@ -93,7 +94,7 @@ export async function runTurn(req: Request, res: Response): Promise<void> {
     const turn = await runAgentTurn(
       request,
       currentAgentId,
-      model ?? "llama-3.3-70b-versatile"
+      model ?? env.GROQ_MODEL
     );
 
     res.json(turn);

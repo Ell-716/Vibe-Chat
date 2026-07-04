@@ -59,7 +59,7 @@ function getGenAI(): GoogleGenerativeAI {
   return _genAI;
 }
 
-export type AIModel = "gpt-4o-mini" | "llama-3.3-70b-versatile" | "claude-sonnet-4-6" | "gemini-1.5-flash" | "deepseek-v4-flash";
+export type AIModel = "gpt-4o-mini" | "openai/gpt-oss-120b" | "claude-sonnet-4-6" | "gemini-1.5-flash" | "deepseek-v4-flash";
 
 /**
  * Maps a raw provider SDK error to a user-friendly Error with a consistent message format.
@@ -154,7 +154,7 @@ export function buildSystemPrompt(
  *
  * Model-specific behaviour:
  * - gpt-4o-mini: Runs a tool-calling loop; yields MCP status messages and final text.
- * - llama-3.3-70b-versatile, claude-sonnet-4-6, gemini-1.5-flash, deepseek-v4-flash: Single non-streaming call; yields full response at once.
+ * - openai/gpt-oss-120b (Groq reasoning model), claude-sonnet-4-6, gemini-1.5-flash, deepseek-v4-flash: Single non-streaming call; yields full response at once.
  *
  * The generator pattern keeps this service free of any HTTP/SSE concerns —
  * the controller is responsible for formatting and writing SSE events.
@@ -165,7 +165,7 @@ export function buildSystemPrompt(
 export async function* chat(params: ChatParams): AsyncGenerator<string> {
   const { messages, model, systemPrompt, mcpTools } = params;
 
-  if (model === "llama-3.3-70b-versatile") {
+  if (model === env.GROQ_MODEL) {
     const chatMessages: ChatCompletionMessageParam[] = messages.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -173,7 +173,10 @@ export async function* chat(params: ChatParams): AsyncGenerator<string> {
 
     try {
       const response = await getGroq().chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        // openai/gpt-oss-120b is a reasoning model: reasoning tokens go into a
+        // separate field; choices[0].message.content is the final answer only.
+        // max_tokens controls visible completion tokens (not reasoning tokens).
+        model: env.GROQ_MODEL,
         messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
         max_tokens: 2048,
       });
