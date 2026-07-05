@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { env } from "../config/env";
 import { getLatestPrompt, insertPrompt } from "../agentPromptQueries";
 import { AGENTS, type AgentTurn } from "./multi-agent.service";
+import { logger } from "../lib/logger";
 
 // ---------------------------------------------------------------------------
 // Exported types
@@ -73,12 +74,26 @@ function resolveModel(model: string): string {
 }
 
 /**
- * Strips markdown code fences that some models wrap around JSON output.
- * @param raw - Raw LLM response string.
- * @returns Cleaned string ready for JSON.parse.
+ * Robustly extracts a JSON object string from raw LLM output.
+ * Handles markdown code fences, reasoning preamble, and trailing text by
+ * preferring the fenced block when present, then falling back to slicing
+ * from the first '{' to the last '}'.
+ * @param text - Raw LLM response string.
+ * @returns The narrowest string likely to be valid JSON.
  */
-function stripCodeFences(raw: string): string {
-  return raw.replace(/```(?:json)?\n?/g, "").replace(/```/g, "").trim();
+function extractJson(text: string): string {
+  // Prefer explicitly fenced JSON block
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) return fenceMatch[1].trim();
+
+  // Fall back to first '{' … last '}' to skip any reasoning preamble
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    return text.slice(start, end + 1);
+  }
+
+  return text.trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -101,8 +116,8 @@ export async function autoScoreTurns(
   const resolved = resolveModel(model);
   const activeTurns = turns.filter((t) => t.content.trim() !== "");
 
-  return Promise.all(
-    activeTurns.map(async (turn): Promise<AutoScore> => {
+  const results = await Promise.all(
+    activeTurns.map(async (turn): Promise<AutoScore | null> => {
       const agentSystemPrompt =
         AGENTS[turn.agentId]?.systemPrompt ?? "Unknown agent";
 
@@ -116,29 +131,42 @@ export async function autoScoreTurns(
         `Reply with JSON only:\n` +
         `{ "clarity": N, "personalityAccuracy": N, "relevance": N }`;
 
-      const response = await getGroq().chat.completions.create({
-        model: resolved,
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 64,
-      });
+      try {
+        const response = await getGroq().chat.completions.create({
+          model: resolved,
+          messages: [{ role: "user", content: prompt }],
+          // 1024 tokens gives the reasoning model enough room to return
+          // complete JSON even when it emits reasoning tokens first.
+          max_tokens: 1024,
+        });
 
-      const raw = response.choices[0]?.message?.content ?? "{}";
-      const parsed = JSON.parse(stripCodeFences(raw)) as {
-        clarity: number;
-        personalityAccuracy: number;
-        relevance: number;
-      };
+        const raw = response.choices[0]?.message?.content ?? "{}";
+        const parsed = JSON.parse(extractJson(raw)) as {
+          clarity: number;
+          personalityAccuracy: number;
+          relevance: number;
+        };
 
-      return {
-        turnNumber: turn.turnNumber,
-        agentId: turn.agentId,
-        content: turn.content,
-        clarity: parsed.clarity,
-        personalityAccuracy: parsed.personalityAccuracy,
-        relevance: parsed.relevance,
-      };
+        return {
+          turnNumber: turn.turnNumber,
+          agentId: turn.agentId,
+          content: turn.content,
+          clarity: parsed.clarity,
+          personalityAccuracy: parsed.personalityAccuracy,
+          relevance: parsed.relevance,
+        };
+      } catch (err) {
+        logger.warn(
+          { turnNumber: turn.turnNumber, err },
+          "Failed to parse auto-score, skipping turn"
+        );
+        return null;
+      }
     })
   );
+
+  // Filter out turns that could not be scored
+  return results.filter((r): r is AutoScore => r !== null);
 }
 
 // ---------------------------------------------------------------------------
