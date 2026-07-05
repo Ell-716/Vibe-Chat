@@ -300,7 +300,14 @@ function PreferencesTab() {
     },
   });
 
-  const currentModel = prefs.defaultModel ?? "openai/gpt-oss-120b";
+  const DEFAULT_MODEL = "openai/gpt-oss-120b";
+  // Validate stored model against the loaded list — stale IDs (e.g. from a
+  // model migration) won't match any SelectItem and would render an empty
+  // dropdown, so fall back to the default when the value isn't recognised.
+  const currentModel =
+    prefs.defaultModel && models.some((m) => m.id === prefs.defaultModel)
+      ? prefs.defaultModel
+      : DEFAULT_MODEL;
   const currentAgent = prefs.defaultAgent ?? "general";
 
   return (
