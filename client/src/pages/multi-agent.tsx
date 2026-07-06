@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Check, Loader2, Bot, ThumbsUp, ThumbsDown } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -179,7 +181,25 @@ function TurnBubble({
             borderTopRightRadius: isAgent1 ? undefined : "4px",
           }}
         >
-          {turn.content}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            disallowedElements={["script", "iframe", "object", "embed"]}
+            unwrapDisallowed={true}
+            components={{
+              code({ className, children, ...props }) {
+                return (
+                  <code
+                    className="bg-white/10 px-1 py-0.5 rounded text-sm font-mono"
+                    {...props}
+                  >
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          >
+            {turn.content}
+          </ReactMarkdown>
         </div>
 
         {/* Vote buttons — always visible */}
