@@ -517,67 +517,43 @@ function AppearanceTab() {
 // ── DATA & PRIVACY TAB ────────────────────────────────────────────────────────
 
 /**
- * Data & Privacy tab — placeholder with "Coming Soon" badge and disabled toggles.
+ * Data & Privacy tab — privacy assurance card with a link to the Danger Zone tab.
  */
-function DataPrivacyTab() {
+function DataPrivacyTab({ onNavigateToDanger }: { onNavigateToDanger: () => void }) {
   return (
     <div>
       <SectionHeading>Data & Privacy</SectionHeading>
 
-      <GlassCard className="mb-4">
-        <div className="flex items-start gap-3 mb-4">
+      <GlassCard>
+        <div className="flex items-start gap-4">
           <div
-            className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+            className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
             style={{ background: "rgba(0,180,216,0.12)" }}
           >
-            <Shield className="h-4 w-4" style={{ color: CYAN }} />
+            <Shield className="h-5 w-5" style={{ color: CYAN }} />
           </div>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-semibold" style={{ color: "hsl(var(--foreground))" }}>
-                Privacy Controls
-              </span>
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(0,180,216,0.15)", color: CYAN, border: "1px solid rgba(0,180,216,0.3)" }}
-              >
-                Coming Soon
-              </span>
-            </div>
+            <p className="text-sm font-semibold mb-2" style={{ color: "hsl(var(--foreground))" }}>
+              Your data is private and stored securely
+            </p>
             <p className="text-sm leading-relaxed" style={{ color: "hsl(var(--muted-foreground))" }}>
-              We're working on giving you more control over your data.
-              Check back soon.
+              Your conversations, documents, and personal information are stored securely
+              and are never shared with third parties. You have full control over your data.
             </p>
           </div>
         </div>
 
         <Divider />
 
-        {/* Disabled toggle rows */}
-        {[
-          { label: "Help improve Vibe Chat", desc: "Share anonymous usage data" },
-          { label: "Conversation history",   desc: "Retain past conversations" },
-        ].map(({ label, desc }) => (
-          <div key={label} className="flex items-center justify-between py-3 opacity-40 cursor-not-allowed">
-            <div className="flex items-center gap-3">
-              <Lock className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--muted-foreground))" }} />
-              <div>
-                <p className="text-sm font-medium" style={{ color: "hsl(var(--muted-foreground))" }}>{label}</p>
-                <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{desc}</p>
-              </div>
-            </div>
-            {/* Fake toggle */}
-            <div
-              className="w-9 h-5 rounded-full relative"
-              style={{ background: BORDER }}
-            >
-              <div
-                className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full"
-                style={{ background: "hsl(var(--muted-foreground))" }}
-              />
-            </div>
-          </div>
-        ))}
+        <button
+          onClick={onNavigateToDanger}
+          className="text-sm cursor-pointer transition-colors duration-150"
+          style={{ color: "rgba(244,63,94,0.7)", background: "none", border: "none", padding: 0 }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#F43F5E")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(244,63,94,0.7)")}
+        >
+          Want to delete your account and all data? Go to Danger Zone →
+        </button>
       </GlassCard>
     </div>
   );
@@ -755,7 +731,7 @@ export default function SettingsPage() {
     account:     <AccountTab />,
     preferences: <PreferencesTab />,
     appearance:  <AppearanceTab />,
-    privacy:     <DataPrivacyTab />,
+    privacy:     <DataPrivacyTab onNavigateToDanger={() => setActiveTab("danger")} />,
     danger:      <DangerZoneTab />,
   };
 
