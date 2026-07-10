@@ -3,18 +3,82 @@ import { env } from "../config/env";
 
 const EMAILJS_API_URL = "https://api.emailjs.com/api/v1.0/email/send";
 
+/**
+ * Applies inline markdown formatting (bold, italic, code) to an already HTML-escaped string.
+ * @param text - HTML-escaped text to process.
+ * @returns Text with inline markdown converted to HTML tags.
+ */
+function applyInlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code style=\"background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:13px;font-family:monospace;\">$1</code>");
+}
+
+/**
+ * Converts a markdown string to a safe HTML string suitable for email bodies.
+ * Handles headings, bold, italic, inline code, bullet lists, numbered lists, and paragraphs.
+ * HTML special characters in the source text are escaped before conversion to prevent XSS.
+ * @param markdown - Raw markdown string from AI-generated content.
+ * @returns HTML string ready for embedding in an email template.
+ */
+function markdownToHtml(markdown: string): string {
+  // Escape HTML special chars in the raw content first
+  const escaped = markdown
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const lines = escaped.split("\n");
+  const parts: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  for (const line of lines) {
+    const ulMatch = line.match(/^[-*]\s+(.+)/);
+    const olMatch = line.match(/^\d+\.\s+(.+)/);
+    const h3Match = line.match(/^###\s+(.+)/);
+    const h2Match = line.match(/^##\s+(.+)/);
+    const h1Match = line.match(/^#\s+(.+)/);
+
+    if (ulMatch) {
+      if (inOl) { parts.push("</ol>"); inOl = false; }
+      if (!inUl) { parts.push("<ul style=\"margin:8px 0;padding-left:20px;\">"); inUl = true; }
+      parts.push(`<li style="margin:4px 0;">${applyInlineMarkdown(ulMatch[1])}</li>`);
+    } else if (olMatch) {
+      if (inUl) { parts.push("</ul>"); inUl = false; }
+      if (!inOl) { parts.push("<ol style=\"margin:8px 0;padding-left:20px;\">"); inOl = true; }
+      parts.push(`<li style="margin:4px 0;">${applyInlineMarkdown(olMatch[1])}</li>`);
+    } else {
+      if (inUl) { parts.push("</ul>"); inUl = false; }
+      if (inOl) { parts.push("</ol>"); inOl = false; }
+
+      if (h3Match) {
+        parts.push(`<h3 style="margin:12px 0 4px;font-size:14px;color:#222222;">${applyInlineMarkdown(h3Match[1])}</h3>`);
+      } else if (h2Match) {
+        parts.push(`<h2 style="margin:14px 0 4px;font-size:15px;color:#222222;">${applyInlineMarkdown(h2Match[1])}</h2>`);
+      } else if (h1Match) {
+        parts.push(`<h2 style="margin:16px 0 4px;font-size:16px;color:#222222;">${applyInlineMarkdown(h1Match[1])}</h2>`);
+      } else if (line.trim() === "") {
+        parts.push("<br>");
+      } else {
+        parts.push(`<p style="margin:0 0 8px;font-size:15px;color:#222222;line-height:1.6;">${applyInlineMarkdown(line)}</p>`);
+      }
+    }
+  }
+
+  if (inUl) parts.push("</ul>");
+  if (inOl) parts.push("</ol>");
+
+  return parts.join("\n");
+}
+
 interface EmailJSParams {
   to_email: string;
   to_name: string;
   from_name: string;
   subject: string;
-  /** Plain-text body. Used by EmailJS template variable {{message}}. */
-  message?: string;
-  /**
-   * HTML body. The EmailJS dashboard template must reference this with
-   * triple braces — {{{html_message}}} — to render it unescaped.
-   */
-  html_message?: string;
+  message: string;
 }
 
 /**
@@ -109,6 +173,7 @@ export async function sendAgentResponseEmail(
   agentName: string,
   responseContent: string
 ): Promise<boolean> {
+  const renderedContent = markdownToHtml(responseContent);
   const htmlMessage = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -151,7 +216,7 @@ export async function sendAgentResponseEmail(
               <hr style="border:none;border-top:1px solid #e5e5e5;margin:20px 0;" />
 
               <!-- Response content -->
-              <p style="margin:0;font-size:15px;color:#222222;line-height:1.6;white-space:pre-wrap;">${responseContent}</p>
+              <div style="font-size:15px;color:#222222;line-height:1.6;">${renderedContent}</div>
 
               <!-- Divider -->
               <hr style="border:none;border-top:1px solid #e5e5e5;margin:28px 0 20px;" />
@@ -173,6 +238,6 @@ export async function sendAgentResponseEmail(
     to_name: customerName,
     from_name: "Vibe Chat",
     subject: `Re: ${subject} - Support Update`,
-    html_message: htmlMessage,
+    message: htmlMessage,
   });
 }

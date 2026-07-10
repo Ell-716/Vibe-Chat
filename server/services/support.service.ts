@@ -112,10 +112,12 @@ export async function generateSupportResponse(
   ticketSubject: string,
   ticketDescription: string,
   conversationHistory: string[],
-  agentName: string
+  agentName: string,
+  customerName?: string
 ): Promise<string> {
   const systemPrompt = `You are ${agentName}, a professional and empathetic customer support agent.
 Generate a helpful, friendly response to the customer's inquiry.
+${customerName ? `The customer's name is ${customerName}. Always address them by their first name — never use placeholders like "[Customer Name]".` : "Do not use placeholder text like [Customer Name] — omit the greeting if you do not know the name."}
 
 Guidelines:
 - Be polite and professional

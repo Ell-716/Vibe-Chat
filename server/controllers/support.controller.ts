@@ -361,7 +361,8 @@ export async function generateResponse(req: Request, res: Response): Promise<voi
         ticket.subject,
         ticket.description,
         conversationHistory,
-        agentName
+        agentName,
+        ticket.customerName
       );
     } catch (aiError) {
       logger.error({ err: aiError }, "AI response generation failed");
