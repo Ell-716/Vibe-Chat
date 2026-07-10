@@ -141,13 +141,13 @@ export function buildOpenAITools(mcpTools?: MCPTool[]): ChatCompletionTool[] | u
       type: "function",
       function: {
         name: "google_drive_find_file",
-        description: "Search for files in Google Drive by name or query",
+        description: "Search for files in Google Drive by name or query. Use query \"*\" to list all files.",
         parameters: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "Search query to find files (file name or search terms)",
+              description: "Search query to find files (file name or search terms). Use \"*\" to list all files.",
             },
           },
           required: ["query"],
@@ -282,8 +282,10 @@ export async function handleToolCall(
       case "google_drive_find_file":
         mcpToolName = "google_drive_find_a_file";
         mcpArgs = {
-          instructions: `Search for files matching: ${args.query || "all files"}`,
-          Search_Query: args.query || "",
+          instructions: args.query && args.query !== "*"
+            ? `Search for files matching: ${args.query}`
+            : "List all files in Google Drive",
+          Search_Query: args.query || "*",
         };
         break;
 
