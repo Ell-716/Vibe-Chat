@@ -6,8 +6,15 @@ const EMAILJS_API_URL = "https://api.emailjs.com/api/v1.0/email/send";
 interface EmailJSParams {
   to_email: string;
   to_name: string;
+  from_name: string;
   subject: string;
-  message: string;
+  /** Plain-text body. Used by EmailJS template variable {{message}}. */
+  message?: string;
+  /**
+   * HTML body. The EmailJS dashboard template must reference this with
+   * triple braces — {{{html_message}}} — to render it unescaped.
+   */
+  html_message?: string;
 }
 
 /**
@@ -78,6 +85,7 @@ export async function sendTicketCreatedEmail(
   return sendEmailJS({
     to_email: customerEmail,
     to_name: customerName,
+    from_name: "Vibe Chat",
     subject: `Support Ticket Created: ${subject}`,
     message: `Hello ${customerName},\n\nThank you for contacting support. We have received your request.\n\nTicket ID: ${ticketId}\nSubject: ${subject}\n\nYour message:\n${description}\n\nOur team will respond shortly.\n\n- Vibe Chat Support`,
   });
@@ -163,7 +171,8 @@ export async function sendAgentResponseEmail(
   return sendEmailJS({
     to_email: customerEmail,
     to_name: customerName,
+    from_name: "Vibe Chat",
     subject: `Re: ${subject} - Support Update`,
-    message: htmlMessage,
+    html_message: htmlMessage,
   });
 }
