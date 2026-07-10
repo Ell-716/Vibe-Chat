@@ -237,7 +237,7 @@ export async function sendAgentResponseEmail(
     to_email: customerEmail,
     to_name: customerName,
     from_name: "Vibe Chat",
-    subject: `Re: ${subject} - Support Update`,
+    subject: `[Vibe Chat Support] Ticket Update: ${subject}`,
     message: htmlMessage,
   });
 }
