@@ -103,7 +103,9 @@ export async function listMCPTools(): Promise<any[]> {
   try {
     if (!env.ZAPIER_MCP_URL) return [];
     const result = await callMCP("tools/list");
-    return result?.tools || [];
+    const tools = result?.tools || [];
+    logger.info({ toolNames: tools.map((t: any) => t.name) }, "Available Zapier MCP tools");
+    return tools;
   } catch (error) {
     logger.error({ err: error }, "Error listing MCP tools");
     return [];
@@ -140,14 +142,31 @@ export function buildOpenAITools(mcpTools?: MCPTool[]): ChatCompletionTool[] | u
     tools.push({
       type: "function",
       function: {
+        name: "google_drive_list_files",
+        description: "List all files in the user's Google Drive. Use this when the user asks to see their files, list their Drive, or show what they have.",
+        parameters: {
+          type: "object",
+          properties: {
+            order_by: {
+              type: "string",
+              description: "Optional sort order, e.g. 'modifiedTime' or 'name'. Omit for default ordering.",
+            },
+          },
+          required: [],
+        },
+      },
+    });
+    tools.push({
+      type: "function",
+      function: {
         name: "google_drive_find_file",
-        description: "Search for files in Google Drive by name or query. To list all files, pass an empty string as the query.",
+        description: "Search for a specific file in Google Drive by name or keyword.",
         parameters: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "Search query to find files (file name or search terms). Pass an empty string to list all files.",
+              description: "The filename or keyword to search for (e.g. 'budget', 'report', 'dogs').",
             },
           },
           required: ["query"],
@@ -272,20 +291,27 @@ export async function handleToolCall(
   functionName: string,
   args: Record<string, any>
 ): Promise<string> {
-  logger.info(`Handling tool call: ${functionName}`);
+  logger.info({ functionName, args }, `Handling tool call: ${functionName}`);
 
   try {
     let mcpToolName: string;
     let mcpArgs: Record<string, any>;
 
     switch (functionName) {
+      case "google_drive_list_files":
+        mcpToolName = "google_drive_retrieve_files_from_google_drive";
+        mcpArgs = {
+          instructions: "Retrieve and list all files from the user's Google Drive",
+          output_hint: "file names, types, and modified dates for all files",
+          ...(args.order_by ? { orderBy: args.order_by } : {}),
+        };
+        break;
+
       case "google_drive_find_file":
         mcpToolName = "google_drive_find_a_file";
         mcpArgs = {
-          instructions: args.query
-            ? `Search for files matching: ${args.query}`
-            : "List all files in Google Drive",
-          Search_Query: args.query || "",
+          instructions: `Search for files matching: ${args.query}`,
+          Search_Query: args.query,
         };
         break;
 
@@ -332,7 +358,25 @@ export async function handleToolCall(
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }
 
+    logger.info({ mcpToolName, mcpArgs }, `Calling Zapier MCP tool`);
     const result = await executeMCPTool(mcpToolName, mcpArgs);
+    logger.info({ mcpToolName, result }, `Zapier MCP tool result`);
+
+    // Zapier returns a followUpQuestion when it needs more input (e.g. a specific
+    // filename for google_drive_find_a_file). Surface this as a plain message so
+    // the LLM relays it to the user instead of saying it "couldn't retrieve files".
+    const textContent = result?.content?.[0]?.text;
+    if (textContent) {
+      try {
+        const parsed = JSON.parse(textContent);
+        if (parsed.followUpQuestion) {
+          return JSON.stringify({ message: parsed.followUpQuestion });
+        }
+      } catch {
+        // not JSON — fall through to normal serialisation
+      }
+    }
+
     return JSON.stringify(result, null, 2);
   } catch (error) {
     logger.error({ err: error }, `Tool call error for ${functionName}`);
