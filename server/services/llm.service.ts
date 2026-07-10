@@ -84,9 +84,6 @@ function mapLLMError(provider: string, error: unknown): Error {
   if (status === 503 || msg.includes("service_unavailable") || msg.includes("service unavailable")) {
     return new Error(`${provider} service is temporarily unavailable. Please try again or switch models.`);
   }
-  if (status === 400 || msg.includes("bad request") || msg.includes("invalid request")) {
-    return new Error(`This model doesn't support the current request format. Try switching models.`);
-  }
   return new Error(`Failed to get response from ${provider}. Please try again or switch to a different model.`);
 }
 

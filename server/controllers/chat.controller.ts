@@ -161,20 +161,6 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
 
     const agentPrompt = agentResult?.systemPrompt;
 
-    // MCP tool calling (Google Drive / Sheets via Zapier) requires openai/gpt-oss-120b.
-    // When tools are active and the user has selected a different model, automatically
-    // redirect to openai/gpt-oss-120b for this request only — the user's preference is
-    // not permanently changed.
-    const hasMcpTools = Array.isArray(mcpTools) && mcpTools.length > 0;
-    const effectiveModel: AIModel =
-      hasMcpTools && model !== env.GROQ_MODEL
-        ? (logger.info(
-            { requestedModel: model, effectiveModel: env.GROQ_MODEL },
-            "Auto-switching to gpt-oss-120b for MCP tool call"
-          ),
-          env.GROQ_MODEL as AIModel)
-        : (model as AIModel);
-
     const systemPrompt = buildSystemPrompt(
       agentPrompt,
       mcpTools as MCPTool[] | undefined,
@@ -189,7 +175,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
 
     for await (const chunk of chat({
       messages,
-      model: effectiveModel,
+      model: model as AIModel,
       systemPrompt,
       mcpTools: mcpTools as MCPTool[] | undefined,
     })) {
