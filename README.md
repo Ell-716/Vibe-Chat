@@ -6,9 +6,7 @@ A full-stack AI chat application with Google OAuth, multi-model support, a custo
 
 ## Demo
 
-[![Vibe Chat Demo](https://img.youtube.com/vi/YOUTUBE_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUTUBE_ID)
-
-> Replace YOUTUBE_ID with the actual YouTube video ID once uploaded.
+[![Vibe Chat Demo](https://img.youtube.com/vi/VugVVeHkEyI/maxresdefault.jpg)](https://www.youtube.com/watch?v=VugVVeHkEyI)
 
 ---
 
