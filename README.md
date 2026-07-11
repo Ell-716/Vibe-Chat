@@ -12,7 +12,7 @@ A full-stack AI chat application with Google OAuth, multi-model support, a custo
 
 ## Overview
 
-Vibe Chat is a production-ready AI chat platform built for developers and teams who want more than a basic chatbot. It supports multiple large language models simultaneously, lets you define custom prompt agents, connects to external tools via Zapier MCP, and includes a fully featured customer support dashboard with AI-powered ticket routing, escalation rules, and agent management.
+Vibe Chat is a production-ready AI chat platform built for developers and teams who want more than a basic chatbot. It supports five large language models simultaneously, lets you define custom prompt agents with their own system prompts, connects to external tools via Zapier MCP (Google Drive and Sheets), and includes ElevenLabs-powered voice input and output, PDF upload with TF-IDF RAG and map-reduce summarization, multi-agent conversations with self-improving prompts, a Discord bot integration, and a fully featured customer support dashboard with AI-powered ticket routing, sentiment analysis, SLA tracking, escalation rules, and automated email notifications.
 
 Users sign in with Google — conversations, messages, and uploaded documents are private to each account. The storage layer abstracts behind a clean `IStorage` interface backed by PostgreSQL (Drizzle ORM); `MemStorage` is available as a zero-config fallback for development without a database.
 
