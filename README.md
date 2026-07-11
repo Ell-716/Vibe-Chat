@@ -4,6 +4,14 @@ A full-stack AI chat application with Google OAuth, multi-model support, a custo
 
 ---
 
+## Demo
+
+[![Vibe Chat Demo](https://img.youtube.com/vi/YOUTUBE_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUTUBE_ID)
+
+> Replace YOUTUBE_ID with the actual YouTube video ID once uploaded.
+
+---
+
 ## Overview
 
 Vibe Chat is a production-ready AI chat platform built for developers and teams who want more than a basic chatbot. It supports multiple large language models simultaneously, lets you define custom prompt agents, connects to external tools via Zapier MCP, and includes a fully featured customer support dashboard with AI-powered ticket routing, escalation rules, and agent management.
@@ -22,6 +30,7 @@ Users sign in with Google — conversations, messages, and uploaded documents ar
 ### Core Features
 - **Multi-model LLM chat** — Streaming responses via Server-Sent Events. Conversations and messages are persisted in a sidebar with rename and delete support.
 - **MCP Tools (Google Drive & Sheets)** — The AI can read files and spreadsheets through Zapier MCP. Tool invocations surface as status messages in the chat stream.
+  > **Note:** MCP tool calling requires an OpenAI API key. Switch to **GPT-4o Mini** in the model selector before using Google Drive or Sheets features. Other models do not support the function-calling loop required for tool execution.
 - **ElevenLabs Voice Widget** — Voice input via speech-to-text and optional voice output via TTS. A toolbar toggle enables auto-playback of AI responses.
 
 ### Advanced Features
@@ -230,8 +239,8 @@ npm run dev
 | `GOOGLE_GEMINI_API_KEY` | Optional | Enables Gemini Flash model. |
 | `DEEPSEEK_API_KEY` | Optional | Enables DeepSeek V4 Flash model. |
 | `ELEVENLABS_API_KEY` | Optional | Enables voice input (STT) and voice output (TTS). |
-| `ZAPIER_MCP_URL` | Optional | Enables Google Drive and Google Sheets MCP tools. |
-| `ZAPIER_MCP_API_KEY` | Optional | Auth key for the Zapier MCP endpoint. |
+| `ZAPIER_MCP_URL` | Optional | Enables Google Drive and Google Sheets MCP tools (requires OpenAI API key + GPT-4o Mini model). |
+| `ZAPIER_MCP_API_KEY` | Optional | Auth key for the Zapier MCP endpoint (requires OpenAI API key + GPT-4o Mini model). |
 | `DISCORD_BOT_TOKEN` | Optional | Enables the Discord bot integration. |
 | `EMAILJS_SERVICE_ID` | Optional | EmailJS service ID for ticket email notifications. |
 | `EMAILJS_TEMPLATE_ID` | Optional | EmailJS template ID for ticket email notifications. |
